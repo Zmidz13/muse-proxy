@@ -1,0 +1,6 @@
+node_modules/
+*.log
+.pw-brave-profile/
+.qwen/
+tmp-repro/
+server.log

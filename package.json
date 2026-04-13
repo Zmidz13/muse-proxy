@@ -1,0 +1,26 @@
+{
+  "name": "muse-proxy",
+  "version": "2.0.0",
+  "description": "Local gateway that bridges Meta AI to Void IDE via OpenAI-compatible API",
+  "main": "src/openai-api.js",
+  "bin": {
+    "musespark": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js start",
+    "start:void": "node src/cli.js startvoid",
+    "start:mcp": "node src/mcp-server.js",
+    "test": "node --test tests/action-runner.test.js tests/gateway-hardening.test.js tests/gateway-simulations.test.js tests/void-bridge.test.js"
+  },
+  "keywords": ["meta-ai", "void-ide", "openai", "proxy", "mcp", "gateway"],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1",
+    "playwright": "^1.59.1",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
+  }
+}
