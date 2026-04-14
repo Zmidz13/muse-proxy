@@ -1,6 +1,6 @@
 {
   "name": "muse-proxy",
-  "version": "2.0.0",
+  "version": "0.0.1",
   "description": "Local gateway that bridges Meta AI to Void IDE via OpenAI-compatible API",
   "main": "src/openai-api.js",
   "bin": {
