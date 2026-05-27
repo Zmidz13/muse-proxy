@@ -28,9 +28,9 @@ Runs the gateway with an internal agent loop. The gateway itself orchestrates mu
 
 Pass-through mode that bridges Void IDE or OpenClaude directly to Meta AI with minimal translation.
 
-### MCP Server Mode (`musespark start:mcp`)
+### MCP Server Mode (`npm run start:mcp`)
 
-Exposes Meta AI as an MCP (Model Context Protocol) server for other tools and agents.
+Exposes Meta AI as an MCP (Model Context Protocol) server (over stdio) for other tools and agents.
 
 ## Prerequisites
 
@@ -111,7 +111,7 @@ In Void IDE, add an **OpenAI Compatible Provider** with these settings:
 
 | Setting | Value |
 |---------|-------|
-| **Base URL** | `http://localhost:8788/v1` |
+| **Base URL** | `http://localhost:8787/v1` |
 | **Model** | `gpt-4o` (any name recognized by Void's `specialToolFormat`) |
 | **API Key** | Any key created via `musespark apicreate` |
 
@@ -129,9 +129,7 @@ src/
 ├── system-prompt.js           # Tool-format appendix (appended to Void's system message)
 ├── bridge-session-store.js    # Persists bridge sessions across HTTP requests
 ├── bridge-gateway.js          # Pass-through bridge gateway (start2/bridge mode)
-├── bridge-browser-manager.js  # Browser lifecycle management for bridge mode
 ├── bridge-message-parser.js   # Parses Meta AI responses in bridge mode
-├── bridge-utils.js            # Shared utilities for bridge mode
 ├── action-runner.js           # Tool execution engine for agentic mode
 ├── key-store.js               # API key management
 ├── auth-setup.js              # Meta AI authentication setup

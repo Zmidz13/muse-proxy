@@ -54,17 +54,6 @@ function execPromise(cmd, opts = {}) {
   });
 }
 
-function safePath(uri, workspaceRoot) {
-  const resolved = path.resolve(uri);
-  if (workspaceRoot) {
-    const normWorkspace = path.resolve(workspaceRoot);
-    if (!resolved.startsWith(normWorkspace)) {
-      return { ok: false, error: `Path outside workspace: ${uri}` };
-    }
-  }
-  return { ok: true, resolved };
-}
-
 function toInt(value) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;

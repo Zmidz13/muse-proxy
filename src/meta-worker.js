@@ -1266,10 +1266,10 @@ class MetaWorker {
       const pickInputText = () => {
         const candidates = [];
         if (sel) candidates.push(document.querySelector(sel));
-        candidates.push(document.querySelector('[data-lexical-editor="true"'));
-        candidates.push(document.querySelector('textarea[data-testid="composer-input"'));
+        candidates.push(document.querySelector('[data-lexical-editor="true"]'));
+        candidates.push(document.querySelector('textarea[data-testid="composer-input"]'));
         candidates.push(document.querySelector('textarea'));
-        candidates.push(document.querySelector('[contenteditable="true"'));
+        candidates.push(document.querySelector('[contenteditable="true"]'));
         for (const el of candidates) {
           if (!el) continue;
           if (typeof el.value === 'string') return el.value.trim();

@@ -286,7 +286,7 @@ function buildStreamingToolChunk(parsedToolCall, toolCallId) {
           }
         }]
       },
-      finish_reason: null
+      finish_reason: 'tool_calls'
     }]
   };
 }
@@ -301,7 +301,7 @@ function buildNonStreamingToolCallsResponse(parsedCalls, content) {
         content: content || null,
         tool_calls: toolCalls
       },
-      finish_reason: null
+      finish_reason: 'tool_calls'
     }]
   };
 }

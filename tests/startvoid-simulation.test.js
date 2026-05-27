@@ -355,10 +355,11 @@ test('startvoid: streaming emits Void-compatible tool chunks with exact paramete
       assert.equal(result.status, 200);
       const toolEvents = result.events.filter((event) => event.choices?.[0]?.delta?.tool_calls);
       assert.ok(toolEvents.length > 0, 'stream must include tool_calls for Void animations');
-      const firstTool = toolEvents[0].choices[0].delta.tool_calls[0];
-      assert.equal(firstTool.index, 0);
-      assert.equal(firstTool.function.name, 'edit_file');
-      const args = JSON.parse(firstTool.function.arguments);
+      // Arguments stream across multiple chunks (OpenAI SDK style); reconstruct like Void does.
+      const parsed = parseStreamLikeVoidSdk(result.events);
+      assert.ok(parsed.toolCall, 'Void parser must reconstruct a toolCall from the stream');
+      assert.equal(parsed.toolCall.name, 'edit_file');
+      const args = parsed.toolCall.rawParams;
       assert.ok(args.search_replace_blocks, 'edit_file stream chunk must use search_replace_blocks');
       assert.ok(!('content' in args), 'stream chunk must not leak internal content param');
     });

@@ -217,18 +217,20 @@ test('real void ide: streaming emits tool_calls with index 0', async () => {
 
       assert.ok(toolCallEvents.length > 0, 'must have tool_call events in stream for Void animations');
 
-      // Each tool call must have index 0 (Void specifically checks: if (index !== 0) continue)
-      toolCallEvents.forEach((e, i) => {
-        const toolCalls = e.choices[0].delta.tool_calls;
-        assert.ok(Array.isArray(toolCalls), `event[${i}] tool_calls must be array`);
-        toolCalls.forEach((tc, j) => {
-          assert.equal(tc.index, 0, `tool_call[${i}][${j}] must have index 0 for Void`);
-          assert.ok(tc.id, `tool_call[${i}][${j}] must have id`);
-          assert.equal(tc.type, 'function', `tool_call[${i}][${j}] must be type function`);
-          assert.ok(tc.function?.name, `tool_call[${i}][${j}] must have function.name`);
-          assert.ok(tc.function?.arguments, `tool_call[${i}][${j}] must have function.arguments`);
-        });
+      // Arguments stream across multiple deltas (OpenAI SDK style). Every delta must
+      // target index 0 (Void checks: if (index !== 0) continue), the opening delta
+      // carries id/type/name, and the concatenated arguments must be valid JSON.
+      const deltas = toolCallEvents.flatMap(e => e.choices[0].delta.tool_calls);
+      deltas.forEach((tc, i) => {
+        assert.equal(tc.index, 0, `delta[${i}] must have index 0 for Void`);
       });
+      const head = deltas.find(tc => tc.function?.name);
+      assert.ok(head, 'an opening delta must carry the function name');
+      assert.ok(head.id, 'opening tool_call delta must have id');
+      assert.equal(head.type, 'function', 'opening tool_call delta must be type function');
+      const argsString = deltas.map(tc => tc.function?.arguments ?? '').join('');
+      const args = JSON.parse(argsString);
+      assert.ok(args && typeof args === 'object', 'reconstructed arguments must be a JSON object');
 
       // Final event should have finish_reason
       const lastEvent = result.events[result.events.length - 1];
