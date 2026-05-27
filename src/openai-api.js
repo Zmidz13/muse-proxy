@@ -1,7 +1,10 @@
 /**
- * @deprecated Use bridge-gateway.js instead. This file is kept for reference.
- * The unified gateway in bridge-gateway.js handles both Void IDE and OpenClaude.
- * To start: musespark start (or start1/start2)
+ * OpenAI-compatible gateway server.
+ *
+ * Powers the `start`, `start1` and `startvoid` CLI commands. Exposes
+ * /v1/chat/completions (streaming + non-streaming) and /v1/models, drives
+ * Meta AI through meta-worker.js, and either executes tools locally
+ * (agentic mode) or forwards them to the client (Void IDE mode).
  */
 const express = require('express');
 const { randomUUID, createHash } = require('crypto');
@@ -2422,7 +2425,6 @@ function createGatewayApp() {
     let executeToolsLocally = DEFAULT_TOOL_EXECUTION_MODE !== 'ide';
     let agentResult = null;
     try {
-      if (req.body && req.body.tools) require('fs').writeFileSync('meta_inspector/prompt_logs/client_tools.json', JSON.stringify(req.body.tools, null, 2), 'utf8');
       // Debug: log Void request details
       const _msgCount = Array.isArray(req.body && req.body.messages) ? req.body.messages.length : 0;
       const _lastRole = Array.isArray(req.body && req.body.messages) && req.body.messages.length > 0 ? req.body.messages[req.body.messages.length - 1].role : '-';

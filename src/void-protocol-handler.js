@@ -134,11 +134,10 @@ function extractLastToolResult(messages) {
     const msg = messages[i];
     if (msg && msg.role === 'tool') {
       const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content || '');
-      const isError = typeof msg.content === 'string' && (
-        msg.content.startsWith('[STATUS: ERROR]') ||
-        msg.content.toLowerCase().includes('error') ||
-        msg.content.toLowerCase().includes('failed')
-      );
+      // Only trust the explicit status marker. Substring matches on "error"/"failed"
+      // wrongly flag successful results whose payload merely mentions those words.
+      const isError = typeof msg.content === 'string'
+        && msg.content.trimStart().startsWith('[STATUS: ERROR]');
       // Try to extract the tool name from the tool_call_id
       // Void uses format like "call_abc123" which doesn't contain the tool name
       // We'll derive it from the preceding assistant message's tool_calls
@@ -162,28 +161,6 @@ function extractLastToolResult(messages) {
     }
   }
   return null;
-}
-
-/**
- * Infer workspace path from messages.
- */
-function inferWorkspacePath(messages) {
-  // Try to find workspace info in tool messages
-  for (const msg of messages) {
-    if (msg.role === 'tool' && msg.content) {
-      // Try to extract path from tool result
-      const pathMatch = msg.content.match(/^(?:Created|Deleted|Error|\/|[A-Z]:\\)/m);
-      if (pathMatch) {
-        const pathMatch2 = msg.content.match(/((?:[A-Z]:\\|\/)[^\n"]+)/i);
-        if (pathMatch2) return pathMatch2[1];
-      }
-    }
-    if (msg.role === 'user' && msg.content) {
-      const pathMatch = msg.content.match(/((?:[A-Z]:\\|\/)[^\n"<]+[^\n"<]*\.[^\n"<]+)/i);
-      if (pathMatch) return pathMatch[1];
-    }
-  }
-  return process.cwd();
 }
 
 /**
@@ -276,7 +253,6 @@ async function runVoidBridgeLoop(messages, opts) {
   let executedTools = [];
   let lastMeta = null;
   let lastText = '';
-  let toolResultCache = new Map(); // Cache tool results to avoid re-sending
 
   // Build system prompt
   const systemPrompt = buildVoidBridgeSystemPrompt(history, voidToolDefinitions);
@@ -492,7 +468,7 @@ async function continueVoidBridgeLoop(messages, state, opts) {
   const history = Array.isArray(messages) ? [...messages] : [];
   const iterationHistory = state?.iterationHistory || [];
   let currentSessionUrl = state?.sessionUrl || opts?.sessionUrl || null;
-  let hadToolCalls = state?.hadToolCalls || true;
+  let hadToolCalls = state?.hadToolCalls ?? true;
   let executedTools = state?.executedTools || [];
   let lastMeta = state?.meta || null;
 

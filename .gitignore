@@ -4,3 +4,4 @@ node_modules/
 .qwen/
 tmp-repro/
 server.log
+meta_inspector/
