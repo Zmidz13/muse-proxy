@@ -117,6 +117,16 @@ In Void IDE, add an **OpenAI Compatible Provider** with these settings:
 
 > **Note:** The model name must be recognized by Void IDE's internal capabilities map. Using `gpt-4o` ensures `specialToolFormat: 'openai-style'` is set, which enables proper tool call parsing.
 
+## Security
+
+In agentic mode (`musespark start`), the gateway **executes tool calls produced by Meta AI directly on the local machine** — reading, writing and deleting files and running shell commands (`run_command`). There is intentionally no sandbox or path confinement, since the agent needs full access to the workspace it operates on.
+
+Treat the gateway like any code-executing agent:
+
+- Only run it on a machine and workspace you trust, ideally scoped to a single project directory.
+- The OpenAI-compatible API is protected by API keys (`musespark apicreate`); never expose the port to an untrusted network.
+- Review what the agent does before trusting it with sensitive directories.
+
 ## Architecture
 
 ```
