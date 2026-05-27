@@ -155,6 +155,10 @@ function createChatCompletionStreamWriter(res, { model }) {
   let lastProgress = '';
   const emittedChunks = [];
 
+  // If the client disconnects mid-stream, stop emitting so we never write to a
+  // destroyed socket. The agent loop's `!streamWriter.closed` checks then bail.
+  res.on('close', () => { closed = true; });
+
   const writeChunk = (chunk) => {
     if (closed) return;
     emittedChunks.push(chunk);
@@ -167,11 +171,17 @@ function createChatCompletionStreamWriter(res, { model }) {
       // eslint-disable-next-line no-console
       console.log(`[SSE_chunk] finish_reason: ${chunk.choices[0].finish_reason}`);
     }
-    res.write('data: ' + JSON.stringify(chunk) + '\n\n');
+    try {
+      res.write('data: ' + JSON.stringify(chunk) + '\n\n');
+    } catch (err) {
+      closed = true;
+      // eslint-disable-next-line no-console
+      console.log(`[SSE] write failed, closing stream: ${err && err.message ? err.message : err}`);
+    }
   };
 
   const open = () => {
-    if (opened) return;
+    if (opened || closed) return;
     opened = true;
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -293,8 +303,10 @@ function createChatCompletionStreamWriter(res, { model }) {
         chunks: emittedChunks,
         done: true
       });
-      res.write('data: [DONE]\n\n');
-      res.end();
+      try {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } catch { /* socket already gone */ }
       closed = true;
     },
     get closed() {

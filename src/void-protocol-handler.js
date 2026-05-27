@@ -88,7 +88,11 @@ const path = require('path');
 const fs = require('fs');
 
 const MODEL_NAME = 'muse';
-const MAX_AGENT_ITERATIONS = Infinity; // No limit — stops only on {"done":true} or error
+// Generous safety cap so a model that never emits {"done":true} (or keeps
+// replying without a tool call) cannot loop forever. Normal turns return on the
+// first tool call, so this only bites pathological spins. Override for very long
+// sessions with MUSE_MAX_AGENT_ITERATIONS.
+const MAX_AGENT_ITERATIONS = Math.max(1, Number(process.env.MUSE_MAX_AGENT_ITERATIONS) || 200);
 
 /**
  * Write prompt log for debugging
