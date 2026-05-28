@@ -583,16 +583,23 @@ function createBridgeGatewayApp() {
         // Auto-retry up to 3 times if tools were expected but response has no XML tool calls.
         if (hasClientTools && !cancelRef.aborted) {
           const { parseToolCalls } = require('./agent-runner');
-          const NARRATIVE_RE = /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok[,\s]|sure|claro|começando|starting|creating|primeiro|first,|planear|planning|analysing|anali|vou criar|vou anali|great|ótimo|perfeito)/i;
+          // On first turn: ANY response without tool calls triggers retry.
+          // On follow-up turns: only retry if it looks like planning/stalling.
+          const NARRATIVE_RE = /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok[,\s]|sure|claro|começando|starting|creating|primeiro|first,|planear|planning|analysing|anali|vou criar|vou anali|great|ótimo|perfeito|emitindo|emitting|outputting|generating|to create|vou escrever|writing|a escrever|a criar)/i;
           const retryPrompts = [
             'STOP. Do not plan or describe anything. Output <tool_call> XML blocks ONLY right now.',
-            'OUTPUT TOOL CALLS ONLY. No text. <tool_call name="...">...</tool_call>',
-            '<tool_call name="write_file">{"path":"index.html","content":"start"}</tool_call>\nReplace the above with the REAL tool call(s) for the task.'
+            'OUTPUT TOOL CALLS ONLY. No text. No explanation. Just the XML block.',
+            'You said you would emit tool calls but did not. Do it now:\n<tool_call name="write_file">{"path":"index.html","content":"REPLACE WITH REAL CONTENT"}</tool_call>'
           ];
           let retryAttempt = 0;
           while (retryAttempt < 3 && !cancelRef.aborted) {
             const check = parseToolCalls(responseText);
-            const isNarrative = check.length === 0 && NARRATIVE_RE.test(responseText.trim());
+            const noToolCalls = check.length === 0;
+            // First turn: retry on ANY response with no tool calls (even if not obviously narrative)
+            // Follow-up turns: only retry if clearly narrative/stalling
+            const isNarrative = noToolCalls && (
+              isFirstTurn || NARRATIVE_RE.test(responseText.trim())
+            );
             if (!isNarrative) break;
             // eslint-disable-next-line no-console
             console.log(`[MUSE] Narrative detected (attempt ${retryAttempt + 1}) — retrying...`);
