@@ -1,79 +1,124 @@
-# Muse Proxy
+# MuseProxy
 
-A raw OpenAI-compatible API gateway and dashboard powered by [Meta AI](https://www.meta.ai/) through Playwright browser automation. It allows tools like Cursor, Cline, Windsurf, Void, or Qwen Code to communicate directly with Meta AI as a raw completions backend.
+> **v0.2** — Raw OpenAI-compatible API gateway with browser automation backend.
 
----
-
-## How It Works
-
-Muse Proxy spins up a local Express server that implements the OpenAI Chat Completions API (`/v1/chat/completions`, `/v1/models`). The gateway acts as a pass-through pipe, converting client requests into browser-automated turns on Meta AI's chat page and returning the streamed responses back to the client.
+Use any AI provider as a free backend for tools that support a custom OpenAI endpoint — Cursor, Cline, Windsurf, Void, Claude Code, Qwen Code, or any API client.
 
 ```
-Client (Cursor/Cline)  ──OpenAI API──▶  Muse Proxy  ──Playwright──▶  Meta AI
-                       ◀──SSE streaming──                              ◀──
+Client (Cursor / Cline / Claude Code)
+        │  OpenAI API  ▼
+    MuseProxy (localhost:8787)
+        │  Playwright  ▼
+      AI Provider (browser)
+        │  response    ▲
 ```
 
 ---
 
 ## Features
 
-* **Raw OpenAI-Compatible Endpoint**: Integrates seamlessly with any client configured for standard OpenAI custom models.
-* **Apple-Style Dashboard**: A premium UI served at `http://localhost:8787` featuring live server metrics, session monitoring, API key creation/management, and quick-start instructions.
-* **Always File Prompt Mode**: Resolves web text-input character limits by dynamically converting large prompts (system instructions + history) into `.md` files uploaded directly to the Meta AI browser session.
-* **SSE Keep-Alives & Abort Signals**: Actively keeps client timeout timers reset using heartbeats, and instantly stops page automation if the client disconnects or aborts the request.
-* **Dynamic Session Matching**: segregates concurrent subagents, memory dream tasks, and multiple client windows into isolated browser tabs.
+- **OpenAI-compatible API** — drop-in replacement for any tool with a custom base URL setting
+- **Dashboard UI** — live metrics, session monitor, API key manager at `http://localhost:8787`
+- **Auto file-prompt mode** — prompts over 25 000 chars are automatically converted to `.md` and uploaded, bypassing text-input limits
+- **SSE streaming + keep-alives** — heartbeat prevents client timeouts on long responses
+- **Session isolation** — concurrent agents and subagents get their own browser tabs
+- **MCP server** — expose the backend via Model Context Protocol (`museproxy start:mcp`)
+- **No prompt wrapping** — client system instructions reach Meta AI unmodified
 
 ---
 
-## Prerequisites
+## Install
 
-* **Node.js**: v18 or later
-* **Chromium**: Installed automatically via Playwright
-* **Meta AI Account**: Logged in via the auth setup tool
-
----
-
-## Setup
+### Global (recommended)
 
 ```bash
-# 1. Install dependencies
+npm install -g museproxy
+```
+
+Playwright Chromium is installed automatically on first `npm install`.
+
+### From source
+
+```bash
+git clone https://github.com/Zmidz13/muse-proxy
+cd muse-proxy
 npm install
-
-# 2. Open the login browser to authenticate with Meta AI
-node src/cli.js authsetup
 ```
 
 ---
 
-## CLI Commands
-
-The gateway can be controlled via the command line or by executing the compiled binary `musespark.exe`.
-
-### Server Control
-
-* **`musespark start`**: Starts the API gateway and dashboard. Opens a desktop application window by default.
-  * `--port <number>`: Specify a custom port (default: `8787`).
-  * `--headless`: Run the server in background/CLI-only mode without opening the dashboard window.
+## Quick Start
 
 ```bash
-# Start in headless mode on a custom port
-node src/cli.js start --port 8787 --headless
+# 1. Log in to Meta AI (one-time)
+museproxy authsetup
+
+# 2. Start the gateway
+museproxy start
 ```
 
-### API Key Management
+The dashboard opens at **http://localhost:8787**.  
+Set your OpenAI base URL to `http://localhost:8787/v1` in your tool.
 
-* **`musespark apicreate [--name "key"]`**: Generate a new API key.
-* **`musespark apilist`**: List all registered API keys.
-* **`musespark apidelete <id-or-prefix>`**: Delete an API key by its ID or prefix.
+---
+
+## CLI Reference
+
+### Server
+
+| Command | Description |
+|---|---|
+| `museproxy start` | Start gateway + open dashboard window |
+| `museproxy start --headless` | Start in background (no window) |
+| `museproxy start --port 9000` | Custom port (default: `8787`) |
+
+### Auth
+
+| Command | Description |
+|---|---|
+| `museproxy authsetup` | Open browser to log in (one-time setup) |
+
+### API Keys
+
+| Command | Description |
+|---|---|
+| `museproxy apicreate --name "my-key"` | Create a new API key |
+| `museproxy apilist` | List all API keys |
+| `museproxy apidelete <id-or-prefix>` | Delete an API key |
+
+---
+
+## Tool Configuration
+
+Point any OpenAI-compatible tool at MuseProxy:
+
+| Setting | Value |
+|---|---|
+| **Base URL** | `http://localhost:8787/v1` |
+| **API Key** | any key created with `museproxy apicreate` |
+| **Model** | `museproxy` (or `gpt-4o`, `gpt-4` — any model name is accepted) |
+
+### Cursor / Windsurf / Cline
+
+Settings → Models → Add custom model → paste the base URL above.
+
+### Claude Code
 
 ```bash
-# Create a new API key for Cline
-node src/cli.js apicreate --name "cline-key"
+ANTHROPIC_BASE_URL=http://localhost:8787/v1 claude
 ```
 
-### Authentication
+---
 
-* **`musespark authsetup`**: Launch a browser window to log in to Meta AI.
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `MUSE_HOME` | `~/.musespark` | Data directory (sessions, keys) |
+| `MUSE_FILE_PROMPT_THRESHOLD` | `25000` | Chars above which prompts are uploaded as `.md` |
+| `MUSE_RESPONSE_TIMEOUT_MS` | `60000` | Timeout waiting for backend reply (ms) |
+| `MUSE_READINESS_TIMEOUT_MS` | `15000` | Browser readiness probe timeout (ms) |
+| `MUSE_DEBUG` | `0` | Set to `1` for verbose Playwright logs |
 
 ---
 
@@ -81,26 +126,38 @@ node src/cli.js apicreate --name "cline-key"
 
 ```
 src/
-├── bridge-gateway.js          # Express server: OpenAI-compatible API + Dashboard API
-├── dashboard.html             # Glassmorphism HTML dashboard interface
-├── meta-worker.js             # Playwright automation wrapper for Meta AI page
-├── agent-runner.js            # Autonomous ReAct loop for proxy-side tool execution
-├── bridge-browser-manager.js  # Chromium browser instance manager
-├── bridge-session-store.js    # Session persistence (bridge-sessions.json)
-├── key-store.js               # API key persistence (keys.json)
-├── auth-setup.js              # One-time login automation
-├── cli.js                     # CLI parser and command router
-├── mcp-server.js              # Exposes Meta AI via Model Context Protocol
-└── log-utils.js               # Global JSON & Markdown session logger
+├── cli.js                  CLI parser and command router
+├── bridge-gateway.js       Express server — OpenAI API + Dashboard API
+├── meta-worker.js          Playwright automation (browser backend)
+├── agent-runner.js         ReAct agent loop for proxy-side tool execution
+├── bridge-session-store.js Session persistence (~/.musespark/bridge-sessions.json)
+├── key-store.js            API key store (~/.musespark/keys.json)
+├── auth-setup.js           One-time login flow
+├── mcp-server.js           Model Context Protocol server
+├── log-utils.js            JSON + Markdown session logger
+└── dashboard.html          Dashboard UI
 ```
 
 ---
 
-## Configurations
+## Known Issues
 
-The gateway reads configurations from environment variables or setting overrides:
+- The AI backend may occasionally respond conversationally instead of executing tool calls on follow-up turns — the proxy injects a forcing reminder automatically, but complex multi-step agents may still need a manual nudge.
+- Headless mode requires a saved login session from `museproxy authsetup`. If the session expires, run authsetup again.
+- Response extraction relies on DOM selectors that may break if the backend UI updates.
 
-* `MUSE_HOME`: Path to data directory (defaults to `~/.musespark`).
-* `MUSE_MAX_PROMPT_CHARS`: Context length limit (default: `60000`).
-* `MUSE_FILE_PROMPT_THRESHOLD`: Size in chars to trigger automatic file uploads (default: `25000`).
-* `MUSE_RESPONSE_TIMEOUT_MS`: Timeout for Meta AI replies (default: `60000`).
+---
+
+## Contributing
+
+Pull requests welcome. Please keep changes scoped — one fix or feature per PR.
+
+```bash
+npm test   # runs gateway hardening tests
+```
+
+---
+
+## License
+
+MIT

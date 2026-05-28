@@ -1,7 +1,7 @@
 /**
  * bridge-gateway.js
  * 
- * Raw OpenAI-compatible API gateway powered by Meta AI.
+ * Raw OpenAI-compatible API gateway with browser automation backend.
  * Pure passthrough — no internal prompts, no tool parsing, no XML wrapping.
  * Whatever the connecting tool sends as system/user messages arrives
  * at Meta AI unmodified. The response comes back as-is.

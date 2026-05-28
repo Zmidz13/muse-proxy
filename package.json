@@ -1,7 +1,7 @@
 {
   "name": "museproxy",
-  "version": "3.1.0",
-  "description": "Raw OpenAI-compatible API gateway powered by Meta AI — use with Cursor, Cline, Windsurf, Void, or any tool",
+  "version": "0.2.0",
+  "description": "Raw OpenAI-compatible API gateway with browser automation backend — use with Cursor, Cline, Windsurf, Void, or any tool",
   "main": "src/bridge-gateway.js",
   "bin": {
     "museproxy": "./src/cli.js",
