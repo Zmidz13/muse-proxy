@@ -580,32 +580,42 @@ function createBridgeGatewayApp() {
           || (result && result.meta && result.meta.session && result.meta.session.url)
           || '';
 
-        // Auto-retry if tools were expected but response is pure narrative (no XML blocks).
+        // Auto-retry up to 3 times if tools were expected but response has no XML tool calls.
         if (hasClientTools && !cancelRef.aborted) {
           const { parseToolCalls } = require('./agent-runner');
-          const preCheck = parseToolCalls(responseText);
-          const looksNarrative = preCheck.length === 0 && responseText.length < 400 &&
-            /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok,?\s|sure|claro|começando|starting|creating)/i.test(responseText.trim());
-          if (looksNarrative) {
+          const NARRATIVE_RE = /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok[,\s]|sure|claro|começando|starting|creating|primeiro|first,|planear|planning|analysing|anali|vou criar|vou anali|great|ótimo|perfeito)/i;
+          const retryPrompts = [
+            'STOP. Do not plan or describe anything. Output <tool_call> XML blocks ONLY right now.',
+            'OUTPUT TOOL CALLS ONLY. No text. <tool_call name="...">...</tool_call>',
+            '<tool_call name="write_file">{"path":"index.html","content":"start"}</tool_call>\nReplace the above with the REAL tool call(s) for the task.'
+          ];
+          let retryAttempt = 0;
+          while (retryAttempt < 3 && !cancelRef.aborted) {
+            const check = parseToolCalls(responseText);
+            const isNarrative = check.length === 0 && NARRATIVE_RE.test(responseText.trim());
+            if (!isNarrative) break;
             // eslint-disable-next-line no-console
-            console.log('[MUSE] Narrative response detected — auto-retrying with stronger forcing prompt...');
-            const retryPrompt = 'EMIT THE TOOL CALLS NOW. Do not write any text — output only <tool_call> XML block(s).\nNão escreves texto — emite apenas os blocos <tool_call> XML agora.';
+            console.log(`[MUSE] Narrative detected (attempt ${retryAttempt + 1}) — retrying...`);
+            const retryPrompt = retryPrompts[retryAttempt] || retryPrompts[retryPrompts.length - 1];
+            const sessionLookup = findBySessionId(sessionId);
             const retryResult = await metaWorker.submitPrompt({
               fullPrompt: retryPrompt,
               lastPrompt: retryPrompt
             }, {
-              timeoutMs: Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 180000),
+              timeoutMs: 60000,
               forceNewChat: false,
               sessionId,
-              sessionUrl: responseUrl || (findBySessionId(sessionId) ? findBySessionId(sessionId).chatUrl : null),
+              sessionUrl: responseUrl || (sessionLookup ? sessionLookup.chatUrl : null),
               alwaysFilePrompt: false,
               cancelRef
             });
             if (retryResult && retryResult.text) {
               responseText = String(retryResult.text).trim();
+              responseUrl = (retryResult.meta && retryResult.meta.url) || responseUrl;
               // eslint-disable-next-line no-console
-              console.log(`[MUSE] Retry response: ${responseText.slice(0, 200)}`);
+              console.log(`[MUSE] Retry ${retryAttempt + 1} response: ${responseText.slice(0, 200)}`);
             }
+            retryAttempt++;
           }
         }
 

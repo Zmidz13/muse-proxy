@@ -831,7 +831,7 @@ class MetaWorker {
       }
 
       const submittedPromptText = useFilePrompting
-        ? "The attached markdown file is your full context: your role, the available tools, and the user's request. Act as that coding agent now. Do NOT summarize or describe the file — respond with the tool_call XML block(s) needed to start the task, exactly as the rules in the file specify.\n\nO arquivo markdown anexado é o teu contexto completo (papel, ferramentas e pedido do utilizador). Age como esse agente agora. NÃO resumas nem descrevas o arquivo — responde com o(s) bloco(s) XML <tool_call> necessários para começar, conforme as regras no arquivo."
+        ? "INSTRUCTIONS: Read the attached file. It contains your role, tools, and the task. Your ENTIRE reply must be tool_call XML blocks — nothing else. No planning, no describing, no greeting. First character of your reply must be '<'.\n\nINSTRUÇÕES: Lê o ficheiro anexado. Contém o teu papel, ferramentas e tarefa. A tua resposta COMPLETA deve ser blocos XML <tool_call> — nada mais. Sem planear, sem descrever. O primeiro carácter da tua resposta deve ser '<'."
         : promptText;
 
       checkAborted();
