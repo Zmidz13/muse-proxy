@@ -3,410 +3,987 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MuseSpark</title>
+<title>MuseProxy Dashboard</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
---bg:#000;--surface:rgba(28,28,30,.82);--surface2:rgba(44,44,48,.7);--surface-hover:rgba(44,44,48,.9);
---border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);--border-focus:rgba(99,102,241,.5);
---text1:rgba(255,255,255,.92);--text2:rgba(255,255,255,.55);--text3:rgba(255,255,255,.3);
---accent:#5E5CE6;--accent2:#7C7AFF;--accent-bg:rgba(94,92,230,.12);
---green:#30D158;--green-bg:rgba(48,209,88,.1);
---red:#FF453A;--red-bg:rgba(255,69,58,.1);
---yellow:#FFD60A;--yellow-bg:rgba(255,214,10,.1);
---r:14px;--rs:10px;--rl:18px;
+  --bg:#09090e;--bg2:#0e0e16;--bg3:#13131e;
+  --s1:rgba(255,255,255,.035);--s2:rgba(255,255,255,.06);--s3:rgba(255,255,255,.09);
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.11);--b3:rgba(255,255,255,.18);
+  --t1:#eeeef8;--t2:rgba(238,238,248,.5);--t3:rgba(238,238,248,.24);
+  --ac:#7c6af7;--ac2:#a89af9;--acg:rgba(124,106,247,.15);--acg2:rgba(124,106,247,.08);
+  --gr:#3ddc84;--grg:rgba(61,220,132,.12);
+  --rd:#ff5f5f;--rdg:rgba(255,95,95,.1);
+  --yl:#f5c542;--ylg:rgba(245,197,66,.1);
+  --bl:#5bb4ff;--blg:rgba(91,180,255,.1);
+  --r:10px;--rs:7px;--rl:14px;
+  --sw:228px;
 }
-html{font-size:16px}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display','Helvetica Neue',sans-serif;
-background:var(--bg);color:var(--text1);min-height:100vh;-webkit-font-smoothing:antialiased}
-.bg{position:fixed;inset:0;z-index:-1;
-background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(94,92,230,.08),transparent 60%),var(--bg)}
-.wrap{max-width:880px;margin:0 auto;padding:36px 24px 80px}
-.brand{display:flex;align-items:center;gap:14px;margin-bottom:32px;-webkit-user-select:none;user-select:none}
-.brand-icon{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));
-display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(94,92,230,.3)}
-.brand-icon svg{width:20px;height:20px;fill:#fff}
-.brand h1{font-size:24px;font-weight:700;letter-spacing:-.3px}
-.brand .ver{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--accent-bg);
-color:var(--accent2);letter-spacing:.3px;vertical-align:middle;margin-left:2px}
-.tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);
-border-radius:var(--rs);padding:3px}
-.tab{flex:1;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;
-cursor:pointer;color:var(--text3);transition:all .2s;letter-spacing:-.1px;border:none;background:transparent}
-.tab:hover{color:var(--text2)}
-.tab.active{background:var(--surface2);color:var(--text1);box-shadow:0 1px 4px rgba(0,0,0,.3)}
-.panel{display:none}
-.panel.active{display:block}
-.section{margin-bottom:24px}
-.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);
-margin-bottom:12px;padding-left:2px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;
-backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);transition:background .2s}
-.card:hover{background:var(--surface-hover)}
-.row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
-.row:last-child{border-bottom:none}
-.row-label{font-size:13px;font-weight:500;color:var(--text2);flex-shrink:0}
-.row-val{font-size:13px;font-weight:500;color:var(--text1);font-family:'SF Mono','Fira Code','Cascadia Code',monospace;
-text-align:right;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:16px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:100px;font-size:12px;
-font-weight:600;letter-spacing:.2px;transition:all .3s}
-.badge.green{background:var(--green-bg);color:var(--green);border:1px solid rgba(48,209,88,.15)}
-.badge.red{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,69,58,.15)}
-.badge.yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(255,214,10,.15)}
-.dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 2.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;
-cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text1);
-font-family:inherit;transition:all .2s;letter-spacing:-.1px}
-.btn:hover{background:var(--surface-hover);border-color:var(--border2);transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:rgba(94,92,230,.3);
-color:#fff;box-shadow:0 4px 14px rgba(94,92,230,.25)}
-.btn-primary:hover{box-shadow:0 6px 20px rgba(94,92,230,.35);filter:brightness(1.08)}
-.btn-danger{color:var(--red);border-color:rgba(255,69,58,.15)}
-.btn-danger:hover{background:var(--red-bg);border-color:rgba(255,69,58,.3)}
-.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px}
-.input{flex:1;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,.3);
-color:var(--text1);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
-.input::placeholder{color:var(--text3)}
-.input:focus{border-color:var(--border-focus)}
-.key-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
-background:rgba(0,0,0,.2);border-radius:8px;border:1px solid var(--border);margin-bottom:6px;transition:border-color .2s}
-.key-row:hover{border-color:rgba(255,255,255,.12)}
-.key-name{font-size:13px;font-weight:600;color:var(--text1)}
-.key-meta{font-size:11px;color:var(--text3);font-family:'SF Mono','Fira Code',monospace;margin-top:1px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.stat{text-align:center;padding:16px 8px;background:rgba(0,0,0,.2);border-radius:var(--rs);border:1px solid var(--border)}
-.stat-val{font-size:22px;font-weight:700;letter-spacing:-.5px}
-.stat-lbl{font-size:9px;color:var(--text3);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
-.toggle-row:last-child{border-bottom:none}
-.toggle-info{display:flex;flex-direction:column;gap:1px}
-.toggle-label{font-size:13px;font-weight:600;color:var(--text1)}
-.toggle-desc{font-size:11px;color:var(--text3)}
-.switch{position:relative;width:42px;height:24px;flex-shrink:0}
-.switch input{opacity:0;width:0;height:0}
-.switch .track{position:absolute;inset:0;border-radius:24px;background:rgba(255,255,255,.08);
-border:1px solid var(--border);transition:all .3s;cursor:pointer}
-.switch .track::after{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;
-background:var(--text3);transition:all .3s}
-.switch input:checked+.track{background:var(--accent);border-color:var(--accent)}
-.switch input:checked+.track::after{transform:translateX(18px);background:#fff}
-.step{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;background:rgba(0,0,0,.15);
-border-radius:8px;border:1px solid var(--border);margin-bottom:6px}
-.step-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
-display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.step-body h4{font-size:12px;font-weight:600;margin-bottom:1px}
-.step-body p{font-size:11px;color:var(--text2);line-height:1.4}
-.step-body code{font-family:'SF Mono','Fira Code',monospace;font-size:10px;color:var(--accent2);
-background:var(--accent-bg);padding:1px 4px;border-radius:3px}
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);
--webkit-backdrop-filter:blur(8px);z-index:1000;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:28px;
-max-width:460px;width:92%;box-shadow:0 24px 80px rgba(0,0,0,.5)}
-.modal h3{font-size:17px;font-weight:700;margin-bottom:6px}
-.modal p{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5}
-.modal-key{padding:12px 14px;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid var(--border);
-font-family:'SF Mono','Fira Code',monospace;font-size:13px;word-break:break-all;color:var(--green);
-margin-bottom:18px;user-select:all}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end}
-.terminal-wrap{background:#0d0d0d;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:420px;
-display:flex;flex-direction:column}
-.terminal-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;
-background:rgba(28,28,30,.95);border-bottom:1px solid var(--border)}
-.terminal-bar span{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.3px;font-family:'SF Mono','Fira Code',monospace}
-.terminal-actions{display:flex;gap:6px}
-.terminal-actions button{background:none;border:1px solid var(--border);color:var(--text3);font-size:10px;
-padding:3px 8px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;transition:all .2s}
-.terminal-actions button:hover{color:var(--text1);border-color:var(--border2)}
-.terminal-log{flex:1;overflow-y:auto;padding:10px 14px;font-family:'SF Mono','Fira Code','Cascadia Code',monospace;
-font-size:11px;line-height:1.55;color:rgba(255,255,255,.72);scroll-behavior:smooth}
-.terminal-log::-webkit-scrollbar{width:6px}
-.terminal-log::-webkit-scrollbar-track{background:transparent}
-.terminal-log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
-.log-line{margin:0;padding:0;white-space:pre-wrap;word-break:break-all}
-.log-line .log-time{color:var(--text3);margin-right:6px;font-size:10px}
-.log-line.log-err{color:var(--red)}
-.log-line.log-wrn{color:var(--yellow)}
-.footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid var(--border);color:var(--text3);font-size:11px}
-@media(max-width:640px){.wrap{padding:20px 16px}.stats{grid-template-columns:1fr 1fr}
-.row{flex-direction:column;gap:4px;align-items:flex-start}.row-val{text-align:left;padding-left:0}}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+  background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;overflow:hidden;font-size:14px}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh}
+.sidebar{width:var(--sw);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;overflow:hidden}
+.main{flex:1;overflow-y:auto;min-width:0;background:var(--bg)}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* ── SIDEBAR ── */
+.logo-wrap{padding:18px 16px 16px;border-bottom:1px solid var(--b1)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 24px var(--acg)}
+.logo-mark svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.logo-tag{font-size:10px;color:var(--t3);font-weight:500;margin-top:1px;letter-spacing:.2px}
+
+.nav-section{padding:12px 10px 0;flex:1;overflow-y:auto}
+.nav-section::-webkit-scrollbar{width:0}
+.nav-group-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--t3);padding:0 8px;margin-bottom:4px;margin-top:12px}
+.nav-group-label:first-child{margin-top:0}
+.nv{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);
+  font-size:12.5px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .14s;
+  border:none;background:none;width:100%;text-align:left;position:relative}
+.nv svg{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.7;transition:opacity .14s}
+.nv:hover{background:var(--s2);color:var(--t1)}
+.nv:hover svg{opacity:1}
+.nv.active{background:var(--acg2);color:var(--ac2);font-weight:600}
+.nv.active svg{opacity:1;stroke:var(--ac2)}
+.nv .badge-num{margin-left:auto;font-size:10px;font-weight:700;color:var(--t3);
+  background:var(--s2);padding:1px 6px;border-radius:10px}
+.nv.active .badge-num{color:var(--ac2);background:var(--acg)}
+
+.sidebar-footer{border-top:1px solid var(--b1);padding:12px 16px}
+.conn-status{display:flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.dot.ok{background:var(--gr);box-shadow:0 0 6px var(--gr)}
+.dot.err{background:var(--rd)}
+.dot.wait{background:var(--yl);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.conn-label{font-size:11.5px;font-weight:500;color:var(--t2)}
+.conn-uptime{font-size:10px;color:var(--t3);margin-left:auto;font-variant-numeric:tabular-nums}
+
+/* ── PAGES ── */
+.page{display:none;padding:28px 30px;max-width:1000px}
+.page.active{display:block}
+.ph{margin-bottom:22px}
+.ph h2{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.ph p{font-size:12.5px;color:var(--t3);margin-top:3px}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.card-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid var(--b1)}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)}
+.card-bd{padding:16px}
+.card-bd.p0{padding:0}
+
+/* ── STAT CARDS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.sc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--c,transparent) 0%,transparent 60%);opacity:.04}
+.sc[data-c=ac]{--c:var(--ac)}
+.sc[data-c=gr]{--c:var(--gr)}
+.sc[data-c=rd]{--c:var(--rd)}
+.sc[data-c=yl]{--c:var(--yl)}
+.sc-val{font-size:24px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1}
+.sc-val[data-c=gr]{color:var(--gr)}
+.sc-val[data-c=rd]{color:var(--rd)}
+.sc-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-top:5px}
+.sc-delta{font-size:10px;color:var(--t3);margin-top:2px;font-variant-numeric:tabular-nums}
+.sc-delta.up{color:var(--gr)}
+.sc-delta.dn{color:var(--rd)}
+
+/* ── INFO ROWS ── */
+.ir{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--b1);gap:10px}
+.ir:last-child{border-bottom:none}
+.ir-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--t3);width:80px;flex-shrink:0}
+.ir-val{flex:1;font-size:12.5px;font-weight:500;font-family:'SF Mono','Cascadia Code','Fira Code',monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ir-val.dim{color:var(--t2)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:var(--rs);
+  font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--b2);
+  background:var(--s2);color:var(--t1);font-family:inherit;transition:all .13s;letter-spacing:-.1px;
+  white-space:nowrap}
+.btn:hover{background:var(--s3);border-color:var(--b3)}
+.btn:active{transform:scale(.98)}
+.btn-pr{background:linear-gradient(135deg,var(--ac),var(--ac2));border-color:transparent;
+  color:#fff;box-shadow:0 2px 12px var(--acg)}
+.btn-pr:hover{filter:brightness(1.08);box-shadow:0 4px 18px var(--acg)}
+.btn-dn{color:var(--rd);border-color:rgba(255,95,95,.18);background:transparent}
+.btn-dn:hover{background:var(--rdg);border-color:rgba(255,95,95,.32)}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.btn-xs{padding:3px 7px;font-size:10.5px;border-radius:5px}
+
+/* ── INPUT ── */
+.inp{flex:1;padding:7px 11px;border-radius:var(--rs);border:1px solid var(--b1);
+  background:rgba(0,0,0,.28);color:var(--t1);font-size:12.5px;font-family:inherit;
+  outline:none;transition:border-color .14s}
+.inp::placeholder{color:var(--t3)}
+.inp:focus{border-color:rgba(124,106,247,.45);box-shadow:0 0 0 3px var(--acg2)}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;
+  font-size:11px;font-weight:600;letter-spacing:.1px}
+.badge-ok{background:var(--grg);color:var(--gr);border:1px solid rgba(61,220,132,.18)}
+.badge-err{background:var(--rdg);color:var(--rd);border:1px solid rgba(255,95,95,.18)}
+.badge-wait{background:var(--ylg);color:var(--yl);border:1px solid rgba(245,197,66,.18)}
+.badge-dim{background:var(--s2);color:var(--t2);border:1px solid var(--b1)}
+
+/* ── TOGGLE ── */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--b1)}
+.trow:last-child{border-bottom:none}
+.trow-info .tl{font-size:13px;font-weight:600}
+.trow-info .td{font-size:11px;color:var(--t3);margin-top:2px}
+.sw{position:relative;width:36px;height:20px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw .tk{position:absolute;inset:0;border-radius:20px;background:var(--s3);
+  border:1px solid var(--b2);cursor:pointer;transition:all .22s}
+.sw .tk::after{content:'';position:absolute;width:14px;height:14px;top:2px;left:2px;
+  border-radius:50%;background:var(--t3);transition:all .22s}
+.sw input:checked+.tk{background:var(--ac);border-color:transparent;box-shadow:0 0 10px var(--acg)}
+.sw input:checked+.tk::after{transform:translateX(16px);background:#fff}
+
+/* ── KEYS ── */
+.keys-toolbar{display:none;align-items:center;gap:8px;padding:10px 16px;
+  background:var(--acg2);border-bottom:1px solid var(--b1)}
+.keys-toolbar.show{display:flex}
+.kt-count{font-size:12px;font-weight:600;color:var(--ac2);flex:1}
+.key-row{display:flex;align-items:center;padding:10px 16px;border-bottom:1px solid var(--b1);gap:10px;transition:background .12s}
+.key-row:last-child{border-bottom:none}
+.key-row:hover{background:var(--s2)}
+.key-row.sel{background:var(--acg2)}
+.kcb{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--b2);background:transparent;
+  cursor:pointer;appearance:none;flex-shrink:0;position:relative;transition:all .13s}
+.kcb:checked{background:var(--ac);border-color:var(--ac)}
+.kcb:checked::after{content:'✓';position:absolute;font-size:9px;color:#fff;font-weight:800;
+  top:50%;left:50%;transform:translate(-50%,-52%)}
+.kname{font-size:13px;font-weight:600;flex:1;min-width:0}
+.kmeta{font-size:10.5px;color:var(--t3);margin-top:1.5px;font-family:'SF Mono','Cascadia Code',monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cbAll{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--b2);
+  background:transparent;cursor:pointer;appearance:none;flex-shrink:0;position:relative;transition:all .13s}
+#cbAll:checked{background:var(--ac);border-color:var(--ac)}
+#cbAll:checked::after{content:'✓';position:absolute;font-size:9px;color:#fff;font-weight:800;
+  top:50%;left:50%;transform:translate(-50%,-52%)}
+#cbAll:indeterminate::after{content:'—';position:absolute;font-size:8px;color:var(--ac2);font-weight:800;
+  top:50%;left:50%;transform:translate(-50%,-52%)}
+
+/* ── CONVERSATIONS ── */
+.conv-list{overflow-y:auto;max-height:calc(100vh - 180px)}
+.conv-item{display:flex;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--b1);
+  cursor:pointer;gap:12px;transition:background .12s}
+.conv-item:hover{background:var(--s2)}
+.conv-item.active{background:var(--acg2);border-left:2px solid var(--ac)}
+.conv-avatar{width:30px;height:30px;border-radius:8px;background:var(--s3);border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--t2)}
+.conv-info{flex:1;min-width:0}
+.conv-id{font-size:12px;font-weight:600;color:var(--t1);font-family:'SF Mono','Cascadia Code',monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-preview{font-size:11px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conv-meta{display:flex;align-items:center;gap:6px;margin-top:4px}
+.conv-time{font-size:10px;color:var(--t3)}
+.conv-turns{font-size:10px;color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:4px}
+
+.conv-detail{padding:0}
+.turn-item{padding:14px 16px;border-bottom:1px solid var(--b1)}
+.turn-item:last-child{border-bottom:none}
+.turn-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.turn-role{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.turn-role.user{color:var(--bl)}
+.turn-role.ai{color:var(--ac2)}
+.turn-time{font-size:10px;color:var(--t3);margin-left:auto}
+.turn-text{font-size:12px;color:var(--t2);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.turn-text.expanded{display:block;-webkit-line-clamp:unset}
+.turn-expand{font-size:11px;color:var(--ac2);cursor:pointer;margin-top:4px;display:inline-block}
+
+/* ── METRICS / CHARTS ── */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.chart-wrap{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.chart-hd{display:flex;align-items:flex-end;justify-content:space-between;padding:12px 16px 8px}
+.chart-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)}
+.chart-val{font-size:20px;font-weight:700;letter-spacing:-.4px;line-height:1}
+.chart-sub{font-size:10px;color:var(--t3);margin-top:1px}
+canvas.sparkline{display:block;width:100%;height:60px}
+
+/* ── TERMINAL ── */
+.term{background:#07070d;border:1px solid var(--b1);border-radius:var(--r);
+  display:flex;flex-direction:column;height:calc(100vh - 130px)}
+.term-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:rgba(255,255,255,.02);border-bottom:1px solid var(--b1);flex-shrink:0}
+.term-title{font-size:10.5px;font-weight:600;color:var(--t3);
+  font-family:'SF Mono','Cascadia Code',monospace;flex:1;letter-spacing:.2px}
+.term-filter{display:flex;gap:4px}
+.tf{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;
+  border:1px solid var(--b1);background:transparent;color:var(--t3);font-family:inherit;transition:all .12s}
+.tf:hover,.tf.active{background:var(--s2);color:var(--t1)}
+.tf.f-err.active{color:var(--rd);border-color:rgba(255,95,95,.3);background:var(--rdg)}
+.tf.f-ok.active{color:var(--gr);border-color:rgba(61,220,132,.3);background:var(--grg)}
+.term-log{flex:1;overflow-y:auto;padding:8px 14px;
+  font-family:'SF Mono','Cascadia Code','Fira Code',monospace;
+  font-size:11px;line-height:1.65;color:rgba(255,255,255,.6);scroll-behavior:smooth}
+.term-log::-webkit-scrollbar{width:3px}
+.term-log::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ll{white-space:pre-wrap;word-break:break-all}
+.ll-ts{color:var(--t3);margin-right:8px;font-size:9.5px;user-select:none}
+.ll-err{color:#ff7070}
+.ll-wrn{color:var(--yl)}
+.ll-ok{color:var(--gr)}
+
+/* ── MODALS ── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  z-index:200;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--b2);border-radius:var(--rl);
+  padding:26px;max-width:430px;width:92%;box-shadow:0 28px 80px rgba(0,0,0,.7)}
+.modal h3{font-size:16px;font-weight:700;letter-spacing:-.3px;margin-bottom:7px}
+.modal p{font-size:12.5px;color:var(--t2);line-height:1.55;margin-bottom:16px}
+.modal-key{padding:12px 14px;background:rgba(0,0,0,.4);border-radius:var(--rs);
+  border:1px solid var(--b1);font-family:'SF Mono','Cascadia Code',monospace;font-size:12px;
+  word-break:break-all;color:var(--gr);margin-bottom:16px;user-select:all;line-height:1.6}
+.modal-icon{width:40px;height:40px;border-radius:10px;background:var(--rdg);
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.modal-icon svg{width:20px;height:20px;stroke:var(--rd);fill:none;stroke-width:2;stroke-linecap:round}
+.ma{display:flex;gap:8px;justify-content:flex-end}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:6px}
+.step{display:flex;gap:10px;padding:11px 13px;background:rgba(0,0,0,.14);
+  border-radius:var(--rs);border:1px solid var(--b1)}
+.step-n{width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;margin-top:1px}
+.step-b h4{font-size:12px;font-weight:600;margin-bottom:2px}
+.step-b p{font-size:11px;color:var(--t2);line-height:1.45}
+.step-b code{font-family:'SF Mono','Cascadia Code',monospace;font-size:10px;
+  color:var(--ac2);background:var(--acg);padding:1px 5px;border-radius:3px}
+
+/* ── ABOUT ROWS ── */
+.ar{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+  border-bottom:1px solid var(--b1);font-size:12.5px}
+.ar:last-child{border-bottom:none}
+.ar-k{color:var(--t3);font-weight:500}
+.ar-v{font-family:'SF Mono','Cascadia Code',monospace;font-size:11.5px}
+
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;text-align:center;color:var(--t3)}
+.empty svg{width:32px;height:32px;stroke:var(--t3);fill:none;stroke-width:1.5;margin-bottom:10px;opacity:.5}
+.empty p{font-size:12.5px}
+
+/* ── SEARCH ── */
+.search-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1)}
+.search-ico{color:var(--t3)}
+
+/* ── SPLIT LAYOUT ── */
+.split{display:grid;grid-template-columns:300px 1fr;gap:0;height:calc(100vh - 130px);overflow:hidden}
+.split-left{border-right:1px solid var(--b1);overflow-y:auto}
+.split-left::-webkit-scrollbar{width:3px}
+.split-left::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.split-right{overflow-y:auto;padding:16px}
+.split-right::-webkit-scrollbar{width:4px}
+.split-right::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:750px){
+  .sidebar{width:52px}
+  .logo-name,.logo-tag,.nv span,.nav-group-label,.sidebar-footer .conn-uptime,.sidebar-footer .conn-label{display:none}
+  .conn-status{justify-content:center}
+  .nv{justify-content:center;padding:9px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .metrics-grid{grid-template-columns:1fr}
+  .page{padding:16px}
+}
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="wrap">
+<div class="app">
 
-<div class="brand">
-<div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-<h1>MuseSpark</h1><span class="ver" id="verTag">v3.1</span>
-</div>
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div>
+        <div class="logo-name">MuseProxy</div>
+        <div class="logo-tag" id="sideVer">v0.2.1</div>
+      </div>
+    </div>
+  </div>
 
-<div class="tabs">
-<button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
-<button class="tab" onclick="showTab('terminal')">Terminal</button>
-<button class="tab" onclick="showTab('settings')">Settings</button>
-</div>
+  <nav class="nav-section">
+    <div class="nav-group-label">Monitor</div>
+    <button class="nv active" onclick="nav('overview')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Overview</span>
+    </button>
+    <button class="nv" onclick="nav('metrics')">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Metrics</span>
+    </button>
+    <button class="nv" onclick="nav('conversations')">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Conversations</span>
+      <span class="badge-num" id="navConvCount">0</span>
+    </button>
+    <div class="nav-group-label">Manage</div>
+    <button class="nv" onclick="nav('keys')">
+      <svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      <span>API Keys</span>
+      <span class="badge-num" id="navKeyCount">0</span>
+    </button>
+    <button class="nv" onclick="nav('logs')">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span>Logs</span>
+    </button>
+    <button class="nv" onclick="nav('settings')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
 
-<div id="panel-dashboard" class="panel active">
+  <div class="sidebar-footer">
+    <div class="conn-status">
+      <div class="dot wait" id="sdot"></div>
+      <span class="conn-label" id="slabel">Connecting</span>
+      <span class="conn-uptime" id="suptime"></span>
+    </div>
+  </div>
+</aside>
 
-<div class="section">
-<div class="section-title">Status</div>
-<div class="card" style="padding:14px 20px">
-<div style="display:flex;align-items:center;justify-content:space-between">
-<div id="statusBadge" class="badge yellow"><span class="dot"></span><span id="statusText">Connecting...</span></div>
-<button class="btn btn-sm" onclick="restartGw()" id="restartBtn">&#x21bb; Restart</button>
-</div>
-</div>
-</div>
+<!-- ══ MAIN ══ -->
+<main class="main">
 
-<div class="section">
-<div class="section-title">Connection</div>
-<div class="card">
-<div class="row"><span class="row-label">Base URL</span><span class="row-val" id="baseUrl">&#8212;</span>
-<button class="btn btn-sm" onclick="copyEl('baseUrl')">Copy</button></div>
-<div class="row"><span class="row-label">Model</span><span class="row-val">muse</span></div>
-<div class="row"><span class="row-label">API Key</span><span class="row-val" id="apiKeyShow">No keys yet</span>
-<button class="btn btn-sm" id="copyKeyBtn" onclick="copyFirstKey()" style="display:none">Copy</button></div>
-</div>
-</div>
+<!-- ── OVERVIEW ── -->
+<div id="pg-overview" class="page active">
+  <div class="ph"><h2>Overview</h2><p>Live server status and connection info</p></div>
 
-<div class="section">
-<div class="section-title">Quick Start</div>
-<div class="card" style="padding:16px 18px">
-<div class="step"><div class="step-num">1</div><div class="step-body"><h4>Authenticate</h4><p>Click <strong>Setup Auth</strong> to log in.</p></div></div>
-<div class="step"><div class="step-num">2</div><div class="step-body"><h4>Create an API Key</h4><p>Generate a key in the Settings tab.</p></div></div>
-<div class="step"><div class="step-num">3</div><div class="step-body"><h4>Connect Your Tool</h4><p>Base URL: <code id="guideUrl">&#8212;</code>, Model: <code>muse</code></p></div></div>
-<div style="margin-top:14px;display:flex;gap:8px;align-items:center">
-<button class="btn btn-primary" onclick="setupAuth()" id="authBtn">&#x1F511; Setup Auth</button>
-<span id="authStatus" style="font-size:11px;color:var(--text3)"></span>
-</div>
-</div>
-</div>
+  <div class="stats-row">
+    <div class="sc" data-c="ac">
+      <div class="sc-val" id="s-req">0</div>
+      <div class="sc-lbl">Requests</div>
+      <div class="sc-delta" id="s-req-d">—</div>
+    </div>
+    <div class="sc" data-c="gr">
+      <div class="sc-val" id="s-sess">0</div>
+      <div class="sc-lbl">Sessions</div>
+      <div class="sc-delta" id="s-sess-d">—</div>
+    </div>
+    <div class="sc">
+      <div class="sc-val" id="s-up">—</div>
+      <div class="sc-lbl">Uptime</div>
+      <div class="sc-delta" id="s-started">—</div>
+    </div>
+    <div class="sc" data-c="rd">
+      <div class="sc-val" id="s-err">0</div>
+      <div class="sc-lbl">Errors</div>
+      <div class="sc-delta" id="s-last-err">—</div>
+    </div>
+  </div>
 
-<div class="section">
-<div class="section-title">Statistics</div>
-<div class="card" style="padding:14px">
-<div class="stats">
-<div class="stat"><div class="stat-val" id="statReq">0</div><div class="stat-lbl">Requests</div></div>
-<div class="stat"><div class="stat-val" id="statSess">0</div><div class="stat-lbl">Sessions</div></div>
-<div class="stat"><div class="stat-val" id="statUp">0s</div><div class="stat-lbl">Uptime</div></div>
-<div class="stat"><div class="stat-val" id="statErr">0</div><div class="stat-lbl">Errors</div></div>
-</div>
-</div>
-</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">Connection</span>
+        <button class="btn btn-xs" onclick="copyText('ov-base','Copy')">Copy URL</button>
+      </div>
+      <div class="ir"><span class="ir-lbl">Base URL</span><span class="ir-val" id="ov-base">—</span></div>
+      <div class="ir"><span class="ir-lbl">Model</span><span class="ir-val dim">museproxy</span></div>
+      <div class="ir"><span class="ir-lbl">API Key</span><span class="ir-val dim" id="ov-key">No keys</span></div>
+      <div class="ir"><span class="ir-lbl">Keys</span><span class="ir-val dim" id="ov-keycount">0</span></div>
+    </div>
 
-</div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">Browser</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="ov-badge" class="badge badge-wait"><span class="dot wait" id="ov-bdot"></span>Connecting</span>
+          <button class="btn btn-xs" onclick="restartGw()" id="restartBtn">↺</button>
+        </div>
+      </div>
+      <div class="ir"><span class="ir-lbl">Phase</span><span class="ir-val dim" id="ov-phase">—</span></div>
+      <div class="ir"><span class="ir-lbl">Thinking</span><span class="ir-val dim" id="ov-think">—</span></div>
+      <div class="ir"><span class="ir-lbl">Chat URL</span><span class="ir-val dim" id="ov-url" style="font-size:11px">—</span></div>
+    </div>
+  </div>
 
-<div id="panel-terminal" class="panel">
-<div class="section" style="margin-bottom:0">
-<div class="terminal-wrap">
-<div class="terminal-bar">
-<span>MuseSpark Gateway &#8212; Live Logs</span>
-<div class="terminal-actions">
-<button onclick="clearTerminal()">Clear</button>
-<button id="scrollBtn" onclick="toggleAutoScroll()">Auto-scroll: ON</button>
-</div>
-</div>
-<div class="terminal-log" id="termLog"></div>
-</div>
-</div>
-</div>
-
-<div id="panel-settings" class="panel">
-
-<div class="section">
-<div class="section-title">API Keys</div>
-<div class="card">
-<div id="keyList"><div style="color:var(--text3);font-size:13px;padding:6px 0">Loading...</div></div>
-<div style="display:flex;gap:8px;margin-top:12px">
-<input class="input" id="keyNameInput" type="text" placeholder="Key name (e.g. cursor)">
-<button class="btn btn-primary" onclick="createKey()">+ Create</button>
-</div>
-</div>
-</div>
-
-<div class="section">
-<div class="section-title">Gateway</div>
-<div class="card">
-<div class="toggle-row">
-<div class="toggle-info"><span class="toggle-label">Agentic Mode</span>
-<span class="toggle-desc">Proxy runs tools locally via XML tags</span></div>
-<label class="switch"><input type="checkbox" id="agentModeToggle" onchange="toggleAgentMode()"><span class="track"></span></label>
-</div>
-<div class="toggle-row">
-<div class="toggle-info"><span class="toggle-label">File Prompt</span>
-<span class="toggle-desc">Send large prompts as file attachments</span></div>
-<label class="switch"><input type="checkbox" id="filePromptToggle" onchange="toggleFilePromptMode()"><span class="track"></span></label>
-</div>
-<div class="toggle-row">
-<div class="toggle-info"><span class="toggle-label">Auth Setup</span>
-<span class="toggle-desc">Open browser to log in</span></div>
-<button class="btn" onclick="setupAuth()" id="authBtn2">&#x1F511; Setup Auth</button>
-</div>
-</div>
-</div>
-
-<div class="section">
-<div class="section-title">About</div>
-<div class="card">
-<div class="row"><span class="row-label">Version</span><span class="row-val" id="aboutVer">v3.1</span></div>
-<div class="row"><span class="row-label">Node</span><span class="row-val" id="aboutNode">&#8212;</span></div>
-<div class="row"><span class="row-label">Platform</span><span class="row-val" id="aboutPlatform">&#8212;</span></div>
-</div>
-</div>
-
-</div>
-
-<div class="footer">MuseProxy &mdash; Raw AI Gateway</div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Quick Start</span></div>
+    <div class="card-bd">
+      <div class="steps">
+        <div class="step"><div class="step-n">1</div><div class="step-b"><h4>Authenticate</h4><p>Go to <strong>Settings → Setup Auth</strong> to log in once and save the session.</p></div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-b"><h4>Create an API Key</h4><p>Go to <strong>API Keys</strong> and generate a key for your tool.</p></div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-b"><h4>Connect Your Tool</h4><p>Base URL: <code id="qs-url">http://localhost:8787/v1</code> &nbsp;·&nbsp; Model: <code>museproxy</code></p></div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="modal-bg" id="keyModal">
-<div class="modal">
-<h3>API Key Created</h3>
-<p>Save this key now &mdash; you won't see it again.</p>
-<div class="modal-key" id="modalKey">&#8212;</div>
-<div class="modal-actions">
-<button class="btn" onclick="copyModalKey()">Copy</button>
-<button class="btn btn-primary" onclick="closeKeyModal()">Done</button>
+<!-- ── METRICS ── -->
+<div id="pg-metrics" class="page">
+  <div class="ph"><h2>Metrics</h2><p>Real-time performance data (sampled every 5 seconds)</p></div>
+
+  <div class="metrics-grid">
+    <div class="chart-wrap">
+      <div class="chart-hd">
+        <div><div class="chart-title">Requests / min</div><div class="chart-sub">rolling 5-min window</div></div>
+        <div style="text-align:right"><div class="chart-val" id="m-rpm">0</div><div class="chart-sub" id="m-rpm-d">—</div></div>
+      </div>
+      <canvas class="sparkline" id="c-req" height="60"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-hd">
+        <div><div class="chart-title">Errors / min</div><div class="chart-sub">rolling 5-min window</div></div>
+        <div style="text-align:right"><div class="chart-val" id="m-epm" style="color:var(--rd)">0</div><div class="chart-sub" id="m-epm-d">—</div></div>
+      </div>
+      <canvas class="sparkline" id="c-err" height="60"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-hd">
+        <div><div class="chart-title">Active Sessions</div><div class="chart-sub">sampled over time</div></div>
+        <div style="text-align:right"><div class="chart-val" id="m-sess" style="color:var(--gr)">0</div><div class="chart-sub">current</div></div>
+      </div>
+      <canvas class="sparkline" id="c-sess" height="60"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-hd">
+        <div><div class="chart-title">Total Requests</div><div class="chart-sub">cumulative</div></div>
+        <div style="text-align:right"><div class="chart-val" id="m-total">0</div><div class="chart-sub" id="m-uptime">—</div></div>
+      </div>
+      <canvas class="sparkline" id="c-total" height="60"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-hd"><span class="card-title">Last Error</span></div>
+    <div class="card-bd">
+      <div id="m-last-err" style="font-size:12px;color:var(--t3);font-family:'SF Mono','Cascadia Code',monospace;line-height:1.5">No errors recorded.</div>
+    </div>
+  </div>
 </div>
+
+<!-- ── CONVERSATIONS ── -->
+<div id="pg-conversations" class="page" style="padding:0;max-width:100%">
+  <div style="padding:20px 24px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between">
+    <div><div style="font-size:17px;font-weight:700;letter-spacing:-.3px">Conversations</div>
+    <div style="font-size:11.5px;color:var(--t3);margin-top:2px">Session history and turn logs</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-xs" onclick="loadConversations()">↺ Refresh</button>
+      <button class="btn btn-xs btn-dn" onclick="confirmClearSessions()">Clear All</button>
+    </div>
+  </div>
+  <div class="split">
+    <div class="split-left">
+      <div class="search-bar">
+        <svg class="search-ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="inp" id="conv-search" placeholder="Search sessions…" oninput="filterConversations()" style="flex:1;padding:4px 8px;font-size:12px">
+      </div>
+      <div id="conv-list"></div>
+    </div>
+    <div class="split-right">
+      <div id="conv-detail">
+        <div class="empty" style="height:100%;min-height:300px">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <p>Select a session to view turns</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- ── API KEYS ── -->
+<div id="pg-keys" class="page">
+  <div class="ph"><h2>API Keys</h2><p>Manage access keys for connecting tools</p></div>
+  <div class="card">
+    <div class="card-hd">
+      <span class="card-title">Keys</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t3);cursor:pointer">
+          <input type="checkbox" id="cbAll" onchange="toggleSelectAll(this.checked)"> All
+        </label>
+      </div>
+    </div>
+    <div class="keys-toolbar" id="kt">
+      <span class="kt-count" id="kt-count">0 selected</span>
+      <button class="btn btn-dn btn-sm" onclick="deleteSelected()">🗑 Delete Selected</button>
+      <button class="btn btn-sm" onclick="clearSel()">Cancel</button>
+    </div>
+    <div id="keyList" class="card-bd p0"><div class="empty" style="padding:28px"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg><p>No keys yet</p></div></div>
+    <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--b1)">
+      <input class="inp" id="keyName" type="text" placeholder="Key name (e.g. cursor, cline)">
+      <button class="btn btn-pr" onclick="createKey()">+ Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOGS ── -->
+<div id="pg-logs" class="page">
+  <div class="ph"><h2>Logs</h2><p>Live gateway output stream</p></div>
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-title">Gateway · Live Output</span>
+      <div class="term-filter">
+        <button class="tf f-all active" onclick="setFilter('all',this)">All</button>
+        <button class="tf f-err" onclick="setFilter('err',this)">Errors</button>
+        <button class="tf f-ok" onclick="setFilter('ok',this)">Requests</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:8px">
+        <button class="btn btn-xs" onclick="clearTerm()">Clear</button>
+        <button class="btn btn-xs" id="asbtn" onclick="toggleAS()">Auto ✓</button>
+      </div>
+    </div>
+    <div class="term-log" id="tlog"></div>
+  </div>
+</div>
+
+<!-- ── SETTINGS ── -->
+<div id="pg-settings" class="page">
+  <div class="ph"><h2>Settings</h2><p>Gateway configuration and authentication</p></div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-hd"><span class="card-title">Authentication</span></div>
+    <div class="card-bd" style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:3px">Browser Login</div>
+        <div style="font-size:11px;color:var(--t3)">Opens a browser to log in. Run once to persist the session in <code style="font-size:10px;color:var(--ac2)">~/.musespark</code>.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <span id="authSt" style="font-size:11px;color:var(--t3)"></span>
+        <button class="btn btn-pr" id="authBtn" onclick="setupAuth()">🔑 Setup Auth</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-hd"><span class="card-title">Gateway Mode</span></div>
+    <div class="card-bd">
+      <div class="trow">
+        <div class="trow-info"><div class="tl">Agentic Mode</div><div class="td">Proxy executes tool calls locally via XML tags instead of passing them to the client</div></div>
+        <label class="sw"><input type="checkbox" id="agT" onchange="setSetting('agentMode',this.checked)"><span class="tk"></span></label>
+      </div>
+      <div class="trow">
+        <div class="trow-info"><div class="tl">File Prompt Mode</div><div class="td">Always upload prompts as .md files (overrides the auto-threshold)</div></div>
+        <label class="sw"><input type="checkbox" id="fpT" onchange="setSetting('filePromptMode',this.checked)"><span class="tk"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><span class="card-title">About</span></div>
+    <div class="card-bd">
+      <div class="ar"><span class="ar-k">Version</span><span class="ar-v" id="ab-ver">—</span></div>
+      <div class="ar"><span class="ar-k">Platform</span><span class="ar-v" id="ab-plat">—</span></div>
+      <div class="ar"><span class="ar-k">Started at</span><span class="ar-v" id="ab-start">—</span></div>
+      <div class="ar"><span class="ar-k">Data dir</span><span class="ar-v">~/.musespark</span></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ══ MODALS ══ -->
+<div class="ov" id="m-newkey">
+  <div class="modal">
+    <h3>API Key Created</h3>
+    <p>Save this key — it won't be shown again.</p>
+    <div class="modal-key" id="m-key-val"></div>
+    <div class="ma">
+      <button class="btn" onclick="copyMK()">Copy Key</button>
+      <button class="btn btn-pr" onclick="cm('m-newkey')">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="m-confirm">
+  <div class="modal">
+    <div class="modal-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg></div>
+    <h3 id="m-conf-title">Confirm Delete</h3>
+    <p id="m-conf-msg">This cannot be undone.</p>
+    <div class="ma">
+      <button class="btn" onclick="cm('m-confirm')">Cancel</button>
+      <button class="btn btn-dn" id="m-conf-ok">Delete</button>
+    </div>
+  </div>
 </div>
 
 <script>
-let keys=[],lastKey=null,autoScroll=true;
+'use strict';
 const $=id=>document.getElementById(id);
-function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function fmtDate(iso){if(!iso)return'--';const d=new Date(iso),n=new Date(),ms=n-d;
-if(ms<6e4)return'just now';if(ms<36e5)return Math.floor(ms/6e4)+'m ago';
-if(ms<864e5)return Math.floor(ms/36e5)+'h ago';return d.toLocaleDateString()}
-function fmtUptime(s){if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m';
-const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+m+'m'}
+const esc=s=>{const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML};
+let keys=[],sessions=[],sessionsFiltered=[],selectedIds=new Set(),lastKey=null;
+let autoScroll=true,logFilter='all',pendingCb=null;
 
-function showTab(name){
-document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['dashboard','terminal','settings'][i]===name)});
-document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-$('panel-'+name).classList.add('active');
-if(name==='terminal')connectLogStream();
+// ── UTILS ──
+const fmtUp=s=>{if(s<60)return s+'s';if(s<3600)return Math.floor(s/60)+'m '+Math.floor(s%60)+'s';
+  return Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m'};
+const fmtDate=iso=>{if(!iso)return'—';const d=new Date(iso),ms=Date.now()-d;
+  if(ms<60000)return'just now';if(ms<3600000)return Math.floor(ms/60000)+'m ago';
+  if(ms<86400000)return Math.floor(ms/3600000)+'h ago';return d.toLocaleDateString()};
+const fmtTime=iso=>{if(!iso)return'—';const d=new Date(iso);
+  return[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')};
+
+// ── NAVIGATION ──
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nv').forEach(n=>n.classList.remove('active'));
+  $('pg-'+page).classList.add('active');
+  const pages=['overview','metrics','conversations','keys','logs','settings'];
+  const navBtns=document.querySelectorAll('.nv');
+  const idx=pages.indexOf(page);
+  if(idx>=0)navBtns[idx].classList.add('active');
+  if(page==='logs')connectLogs();
+  if(page==='conversations')loadConversations();
 }
 
+// ── STATUS ──
+let prevReq=0,prevErr=0;
 async function loadStatus(){
-try{
-const r=await fetch('/api/status');const d=await r.json();
-const b=d.browser||{},badge=$('statusBadge'),txt=$('statusText');
-if(b.ready){badge.className='badge green';txt.textContent=b.thinking?'Processing...':'Connected'}
-else if(b.phase==='init'){badge.className='badge yellow';txt.textContent='Initializing...'}
-else{badge.className='badge red';txt.textContent=b.lastError?'Auth Required':'Disconnected'}
-$('verTag').textContent='v'+(d.server.version||'3.1');
-$('aboutVer').textContent='v'+(d.server.version||'3.1');
-$('statReq').textContent=(d.server.totalRequests||0).toLocaleString();
-$('statSess').textContent=(d.sessions||0).toLocaleString();
-$('statErr').textContent=(d.server.totalErrors||0).toLocaleString();
-$('statUp').textContent=fmtUptime(d.server.uptime||0);
-$('agentModeToggle').checked=!!d.agentMode;
-$('filePromptToggle').checked=!!d.filePromptMode;
-}catch(e){$('statusBadge').className='badge red';$('statusText').textContent='Offline'}
+  try{
+    const d=await fetch('/api/status').then(r=>r.json());
+    const b=d.browser||{},s=d.server||{};
+    // Sidebar
+    const dot=$('sdot'),lbl=$('slabel'),upt=$('suptime');
+    if(b.ready){dot.className='dot ok';lbl.textContent=b.thinking?'Processing':'Ready'}
+    else if(['init','preflight','submitting'].includes(b.phase)){dot.className='dot wait';lbl.textContent='Initializing'}
+    else{dot.className='dot err';lbl.textContent='Disconnected'}
+    upt.textContent=fmtUp(s.uptime||0);
+    // Stats
+    const req=s.totalRequests||0,err=s.totalErrors||0;
+    const dReq=req-prevReq,dErr=err-prevErr;
+    $('s-req').textContent=req.toLocaleString();
+    $('s-sess').textContent=(d.sessions||0).toLocaleString();
+    $('s-up').textContent=fmtUp(s.uptime||0);
+    $('s-err').textContent=err.toLocaleString();
+    const rd=$('s-req-d'),ed=$('s-last-err');
+    if(dReq>0){rd.textContent='+'+dReq+' since last tick';rd.className='sc-delta up'}
+    else rd.textContent='No new requests';
+    ed.textContent=s.lastError?'Last: '+s.lastError.slice(0,40):'No errors';
+    ed.className='sc-delta'+(s.lastError?' dn':'');
+    $('s-started').textContent='Since '+fmtDate(s.startedAt);
+    // Browser badge
+    const bg=$('ov-badge'),bdot=$('ov-bdot');
+    if(b.ready){bg.className='badge badge-ok';bg.innerHTML='<span class="dot ok"></span>'+(b.thinking?'Processing':'Connected')}
+    else if(['init','preflight'].includes(b.phase)){bg.className='badge badge-wait';bg.innerHTML='<span class="dot wait"></span>Initializing'}
+    else{bg.className='badge badge-err';bg.innerHTML='<span class="dot err"></span>Disconnected'}
+    $('ov-phase').textContent=b.phase||'—';
+    $('ov-think').textContent=b.thinking?'Yes':'No';
+    $('ov-url').textContent=b.url?b.url.replace('https://','').slice(0,50):'—';
+    // Version & about
+    const ver=s.version||'0.2';
+    $('sideVer').textContent='v'+ver;
+    $('ab-ver').textContent='v'+ver;
+    $('ab-plat').textContent=navigator.platform;
+    $('ab-start').textContent=s.startedAt?new Date(s.startedAt).toLocaleString():'—';
+    $('agT').checked=!!d.agentMode;
+    $('fpT').checked=!!d.filePromptMode;
+    // Metrics
+    $('m-total').textContent=req.toLocaleString();
+    $('m-sess').textContent=(d.sessions||0);
+    $('m-uptime').textContent='up '+fmtUp(s.uptime||0);
+    if(s.lastError)$('m-last-err').textContent=s.lastError;
+    // Metrics series
+    const now=Date.now();
+    metricPush('req',req,now);metricPush('err',err,now);metricPush('sess',d.sessions||0,now);
+    metricPush('total',req,now);
+    updateCharts(req,err,d.sessions||0);
+    prevReq=req;prevErr=err;
+  }catch{}
 }
 
+// ── METRICS / CHARTS ──
+const series={req:[],err:[],sess:[],total:[]};
+const WINDOW=60,INTERVAL=5000;
+function metricPush(k,v,t){const s=series[k];s.push({v,t});
+  while(s.length>WINDOW)s.shift()}
+function rpmOf(k){
+  const s=series[k];if(s.length<2)return 0;
+  const a=s[s.length-1],b=s[0];
+  const diff=a.v-b.v;const mins=(a.t-b.t)/60000;
+  return mins>0?Math.max(0,diff/mins):0}
+function drawSparkline(canvasId,dataKey,color,fill){
+  const cv=$(canvasId);if(!cv)return;
+  const W=cv.offsetWidth||300,H=60;
+  if(cv.width!==W){cv.width=W;cv.height=H}
+  const ctx=cv.getContext('2d');ctx.clearRect(0,0,W,H);
+  const pts=series[dataKey].map(p=>p.v);
+  if(pts.length<2){ctx.fillStyle='rgba(255,255,255,.03)';ctx.fillRect(0,0,W,H);return}
+  const mn=Math.min(...pts),mx=Math.max(...pts),rng=mx-mn||1;
+  const xs=(i)=>i/(pts.length-1)*W;
+  const ys=(v)=>H-4-((v-mn)/rng)*(H-8);
+  // Fill
+  ctx.beginPath();ctx.moveTo(xs(0),H);
+  pts.forEach((v,i)=>ctx.lineTo(xs(i),ys(v)));
+  ctx.lineTo(xs(pts.length-1),H);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,fill);grad.addColorStop(1,'transparent');
+  ctx.fillStyle=grad;ctx.fill();
+  // Line
+  ctx.beginPath();pts.forEach((v,i)=>i===0?ctx.moveTo(xs(i),ys(v)):ctx.lineTo(xs(i),ys(v)));
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
+}
+function updateCharts(req,err,sess){
+  const rpm=rpmOf('req').toFixed(1);
+  const epm=rpmOf('err').toFixed(1);
+  $('m-rpm').textContent=rpm;
+  $('m-epm').textContent=epm;
+  $('m-rpm-d').textContent=parseFloat(rpm)>0?'active':'idle';
+  $('m-epm-d').textContent=parseFloat(epm)>0?'degraded':'healthy';
+  drawSparkline('c-req','req','rgba(124,106,247,.9)','rgba(124,106,247,.15)');
+  drawSparkline('c-err','err','rgba(255,95,95,.9)','rgba(255,95,95,.12)');
+  drawSparkline('c-sess','sess','rgba(61,220,132,.9)','rgba(61,220,132,.12)');
+  drawSparkline('c-total','total','rgba(91,180,255,.9)','rgba(91,180,255,.12)');
+}
+
+// ── KEYS ──
 async function loadKeys(){
-try{const r=await fetch('/api/keys');const d=await r.json();keys=d.keys||[];renderKeys()}
-catch(e){$('keyList').innerHTML='<div style="color:var(--red);font-size:13px;padding:6px 0">Failed to load</div>'}
+  try{
+    const d=await fetch('/api/keys').then(r=>r.json());
+    keys=d.keys||[];renderKeys();
+    $('navKeyCount').textContent=keys.length;
+    $('ov-keycount').textContent=keys.length+' key'+(keys.length!==1?'s':'');
+    $('ov-key').textContent=keys.length?keys[0].prefix+'••••••':'No keys';
+  }catch{$('keyList').innerHTML='<div class="empty"><p style="color:var(--rd)">Failed to load</p></div>'}
 }
-
 function renderKeys(){
-const list=$('keyList'),show=$('apiKeyShow'),cbtn=$('copyKeyBtn');
-if(!keys.length){list.innerHTML='<div style="color:var(--text3);font-size:13px;padding:6px 0">No keys yet. Create one to get started.</div>';
-show.textContent='No keys yet';cbtn.style.display='none';return}
-show.textContent=keys[0].prefix+'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';cbtn.style.display='inline-flex';
-list.innerHTML=keys.map(k=>`<div class="key-row"><div><div class="key-name">${esc(k.name)}</div><div class="key-meta">${k.prefix}\u2022\u2022\u2022\u2022 \u00b7 ${fmtDate(k.createdAt)}${k.lastUsedAt?' \u00b7 '+fmtDate(k.lastUsedAt):''}</div></div><button class="btn btn-danger btn-sm" onclick="delKey('${k.id}')">Delete</button></div>`).join('');
+  const list=$('keyList');
+  if(!keys.length){list.innerHTML='<div class="empty" style="padding:28px"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg><p>No keys yet</p></div>';
+    updateSelUI();return}
+  list.innerHTML=keys.map(k=>`
+    <div class="key-row${selectedIds.has(k.id)?' sel':''}" data-id="${esc(k.id)}">
+      <input type="checkbox" class="kcb"${selectedIds.has(k.id)?' checked':''} onchange="toggleSel('${esc(k.id)}',this.checked)">
+      <div style="flex:1;min-width:0">
+        <div class="kname">${esc(k.name)}</div>
+        <div class="kmeta">${esc(k.prefix)}•••• · Created ${fmtDate(k.createdAt)}${k.lastUsedAt?' · Used '+fmtDate(k.lastUsedAt):''}</div>
+      </div>
+      <button class="btn btn-dn btn-sm" onclick="confirmDel('${esc(k.id)}','${esc(k.name)}')">Delete</button>
+    </div>`).join('');
+  updateSelUI();
 }
-
+function toggleSel(id,v){v?selectedIds.add(id):selectedIds.delete(id);
+  const r=document.querySelector(`.key-row[data-id="${id}"]`);
+  if(r)r.classList.toggle('sel',v);updateSelUI()}
+function toggleSelectAll(v){selectedIds=v?new Set(keys.map(k=>k.id)):new Set();renderKeys()}
+function clearSel(){selectedIds=new Set();renderKeys()}
+function updateSelUI(){
+  const n=selectedIds.size,t=keys.length,kt=$('kt'),cb=$('cbAll'),kc=$('kt-count');
+  kt.classList.toggle('show',n>0);
+  if(kc)kc.textContent=n+' selected';
+  if(cb){cb.checked=n>0&&n===t;cb.indeterminate=n>0&&n<t}
+}
 async function createKey(){
-const name=$('keyNameInput').value.trim()||'default';
-try{const r=await fetch('/api/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-const d=await r.json();if(d.ok){lastKey=d.apiKey;$('modalKey').textContent=d.apiKey;$('keyModal').classList.add('open');
-$('keyNameInput').value='';await loadKeys()}}catch(e){alert('Failed: '+e.message)}
+  const name=$('keyName').value.trim()||'default';
+  try{const d=await fetch('/api/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})}).then(r=>r.json());
+    if(d.ok){lastKey=d.apiKey;$('m-key-val').textContent=d.apiKey;$('m-newkey').classList.add('open');$('keyName').value='';await loadKeys()}}
+  catch(e){console.error(e)}
 }
-async function delKey(id){if(!confirm('Delete this key?'))return;
-try{await fetch('/api/keys/'+id,{method:'DELETE'});await loadKeys()}catch(e){alert('Failed: '+e.message)}}
+function confirmDel(id,name){
+  $('m-conf-title').textContent='Delete Key';
+  $('m-conf-msg').textContent=`Delete "${name}"? This cannot be undone.`;
+  pendingCb=async()=>{await fetch('/api/keys/'+id,{method:'DELETE'});selectedIds.delete(id);await loadKeys()};
+  $('m-confirm').classList.add('open');
+}
+async function deleteSelected(){
+  const n=selectedIds.size;
+  $('m-conf-title').textContent='Delete '+n+' Key'+(n>1?'s':'');
+  $('m-conf-msg').textContent=`Delete ${n} key${n>1?'s':''}? This cannot be undone.`;
+  const ids=[...selectedIds];
+  pendingCb=async()=>{await Promise.all(ids.map(id=>fetch('/api/keys/'+id,{method:'DELETE'})));selectedIds=new Set();await loadKeys()};
+  $('m-confirm').classList.add('open');
+}
+$('m-conf-ok').onclick=async()=>{cm('m-confirm');if(pendingCb)await pendingCb();pendingCb=null};
 
-async function setupAuth(btnId){
-const btn=$(btnId||'authBtn'),st=$('authStatus');
-btn.disabled=true;btn.innerHTML='Opening...';st.textContent='';
-try{const r=await fetch('/api/auth/setup',{method:'POST'});const d=await r.json();
-if(d.ok){st.textContent='\u2713 Browser opened';st.style.color='var(--green)'}
-else{st.textContent='\u2717 '+(d.error||'Failed');st.style.color='var(--red)'}
-}catch(e){st.textContent='\u2717 '+e.message;st.style.color='var(--red)'}
-setTimeout(()=>{btn.disabled=false;btn.innerHTML='\uD83D\uDD11 Setup Auth'},4e3);
+// ── CONVERSATIONS ──
+async function loadConversations(){
+  try{
+    const d=await fetch('/v1/sessions').then(r=>r.json());
+    sessions=(d.sessions||[]).sort((a,b)=>new Date(b.lastUsed)-new Date(a.lastUsed));
+    sessionsFiltered=[...sessions];
+    $('navConvCount').textContent=sessions.length;
+    renderConvList();
+  }catch{$('conv-list').innerHTML='<div class="empty" style="padding:20px"><p style="color:var(--rd)">Failed to load</p></div>'}
+}
+function filterConversations(){
+  const q=$('conv-search').value.toLowerCase();
+  sessionsFiltered=sessions.filter(s=>
+    s.sessionId.toLowerCase().includes(q)||
+    (s.clientType||'').toLowerCase().includes(q)||
+    (s.lastAction?.userQueryPreview||'').toLowerCase().includes(q)
+  );
+  renderConvList();
+}
+function renderConvList(){
+  const list=$('conv-list');
+  if(!sessionsFiltered.length){
+    list.innerHTML='<div class="empty" style="padding:28px"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>No sessions found</p></div>';
+    return;
+  }
+  list.innerHTML=sessionsFiltered.map((s,i)=>{
+    const preview=s.lastAction?.userQueryPreview||s.lastAction?.responsePreview||'No content';
+    const initials=s.sessionId.slice(0,2).toUpperCase();
+    return`<div class="conv-item" data-sid="${esc(s.sessionId)}" onclick="openSession('${esc(s.sessionId)}',this)">
+      <div class="conv-avatar">${initials}</div>
+      <div class="conv-info">
+        <div class="conv-id">${esc(s.sessionId.slice(0,20))}…</div>
+        <div class="conv-preview">${esc(preview.slice(0,60))}</div>
+        <div class="conv-meta">
+          <span class="conv-time">${fmtDate(s.lastUsed)}</span>
+          <span class="conv-turns">${s.historyCount||0} turns</span>
+          ${s.clientType?`<span class="conv-turns">${esc(s.clientType)}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function openSession(id,el){
+  document.querySelectorAll('.conv-item').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const detail=$('conv-detail');
+  detail.innerHTML='<div class="empty" style="padding:28px"><p>Loading…</p></div>';
+  try{
+    const d=await fetch('/v1/sessions/'+encodeURIComponent(id)).then(r=>r.json());
+    const s=d.session;
+    if(!s){detail.innerHTML='<div class="empty"><p>Session not found</p></div>';return}
+    const hist=s.history||[];
+    detail.innerHTML=`
+      <div style="padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;gap:8px;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div style="font-size:11.5px;font-weight:700;color:var(--t1);font-family:'SF Mono','Cascadia Code',monospace">${esc(s.sessionId)}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px">
+            Created ${fmtDate(s.createdAt)} · ${hist.length} turns${s.clientType?' · '+esc(s.clientType):''}
+          </div>
+          ${s.chatUrl?`<div style="font-size:10.5px;color:var(--ac2);margin-top:2px;word-break:break-all">${esc(s.chatUrl)}</div>`:''}
+        </div>
+        <button class="btn btn-xs btn-dn" onclick="confirmDelSession('${esc(s.sessionId)}')">Delete</button>
+      </div>
+      <div class="conv-detail">
+        ${hist.length===0?'<div class="empty" style="padding:28px"><p>No turns recorded</p></div>':
+          hist.map((t,i)=>`
+          <div class="turn-item">
+            <div class="turn-header">
+              <span class="turn-role user">User</span>
+              <span class="turn-time">${fmtDate(t.at)}</span>
+            </div>
+            ${t.userQueryPreview?`<div class="turn-text" id="tq-${i}">${esc(t.userQueryPreview)}</div>
+            ${t.userQueryPreview.length>80?`<span class="turn-expand" onclick="expandTurn('tq-${i}',this)">Show more</span>`:''}`:
+            '<div style="font-size:11px;color:var(--t3)">No query recorded</div>'}
+            ${t.responsePreview?`
+            <div class="turn-header" style="margin-top:10px">
+              <span class="turn-role ai">AI</span>
+            </div>
+            <div class="turn-text" id="tr-${i}">${esc(t.responsePreview)}</div>
+            ${t.responsePreview.length>80?`<span class="turn-expand" onclick="expandTurn('tr-${i}',this)">Show more</span>`:''}
+            `:''}
+          </div>`).join('')}
+      </div>`;
+  }catch{detail.innerHTML='<div class="empty"><p style="color:var(--rd)">Failed to load session</p></div>'}
+}
+function expandTurn(id,btn){$(id).classList.toggle('expanded');btn.textContent=$(id).classList.contains('expanded')?'Show less':'Show more'}
+function confirmDelSession(id){
+  $('m-conf-title').textContent='Delete Session';
+  $('m-conf-msg').textContent='Delete this session and its history?';
+  pendingCb=async()=>{await fetch('/v1/sessions/'+encodeURIComponent(id),{method:'DELETE'});await loadConversations();$('conv-detail').innerHTML='<div class="empty" style="padding:28px"><p>Session deleted</p></div>'};
+  $('m-confirm').classList.add('open');
+}
+function confirmClearSessions(){
+  $('m-conf-title').textContent='Clear All Sessions';
+  $('m-conf-msg').textContent='Delete all '+sessions.length+' sessions? This cannot be undone.';
+  pendingCb=async()=>{await Promise.all(sessions.map(s=>fetch('/v1/sessions/'+encodeURIComponent(s.sessionId),{method:'DELETE'})));await loadConversations()};
+  $('m-confirm').classList.add('open');
 }
 
-async function toggleAgentMode(){
-const t=$('agentModeToggle'),v=t.checked;
-try{await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agentMode:v})})}
-catch(e){t.checked=!v}await loadStatus();
+// ── SETTINGS ──
+async function setSetting(k,v){
+  try{await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({[k]:v})})}
+  catch{await loadStatus()}
 }
-async function toggleFilePromptMode(){
-const t=$('filePromptToggle'),v=t.checked;
-try{await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filePromptMode:v})})}
-catch(e){t.checked=!v}await loadStatus();
+async function setupAuth(){
+  const btn=$('authBtn'),st=$('authSt');
+  btn.disabled=true;btn.textContent='Opening…';
+  try{const d=await fetch('/api/auth/setup',{method:'POST'}).then(r=>r.json());
+    if(d.ok){st.style.color='var(--gr)';st.textContent='✓ Browser opened'}
+    else{st.style.color='var(--rd)';st.textContent='✗ '+(d.error||'Failed')}}
+  catch(e){st.style.color='var(--rd)';st.textContent='✗ '+e.message}
+  setTimeout(()=>{btn.disabled=false;btn.textContent='🔑 Setup Auth'},4000);
 }
-
 async function restartGw(){
-const btn=$('restartBtn');btn.disabled=true;btn.innerHTML='Restarting...';
-try{await fetch('/api/restart',{method:'POST'})}catch(e){}
-setTimeout(()=>{btn.disabled=false;btn.innerHTML='\u21bb Restart'},5e3);
+  const btn=$('restartBtn');btn.disabled=true;btn.textContent='…';
+  try{await fetch('/api/restart',{method:'POST'})}catch{}
+  setTimeout(()=>{btn.disabled=false;btn.innerHTML='↺'},5000);
 }
 
-let logEventSource=null;
-function connectLogStream(){
-if(logEventSource){logEventSource.close();logEventSource=null}
-try{
-logEventSource=new EventSource('/api/logs');
-logEventSource.onmessage=function(e){
-try{addLogLine(JSON.parse(e.data))}catch(_){}
-};
-logEventSource.onerror=function(){logEventSource=null;setTimeout(connectLogStream,3000)};
-}catch(_){}
+// ── LOGS ──
+let logES=null;
+function connectLogs(){
+  if(logES)return;
+  logES=new EventSource('/api/logs');
+  logES.onmessage=e=>{try{addLog(JSON.parse(e.data))}catch{}};
+  logES.onerror=()=>{logES=null;setTimeout(()=>{if($('pg-logs').classList.contains('active'))connectLogs()},3000)};
 }
-
-function addLogLine(entry){
-const el=$('termLog');
-const d=new Date(entry.t);
-const ts=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')+':'+d.getSeconds().toString().padStart(2,'0');
-const line=document.createElement('div');
-line.className='log-line'+(entry.l.startsWith('[ERR]')?' log-err':'')+(entry.l.startsWith('[WRN]')?' log-wrn':'');
-const text=entry.l.replace(/\[ERR\]\s*/,'').replace(/\[WRN\]\s*/,'');
-line.innerHTML='<span class="log-time">'+ts+'</span>'+esc(text);
-el.appendChild(line);
-if(autoScroll)el.scrollTop=el.scrollHeight;
-while(el.childNodes.length>3000)el.removeChild(el.firstChild);
+const logLines=[];
+function addLog(entry){
+  logLines.push(entry);if(logLines.length>5000)logLines.splice(0,1000);
+  if(shouldShow(entry,logFilter))appendLine(entry);
 }
-
-function clearTerminal(){$('termLog').innerHTML=''}
-function toggleAutoScroll(){
-autoScroll=!autoScroll;
-$('scrollBtn').textContent='Auto-scroll: '+(autoScroll?'ON':'OFF');
+function shouldShow(e,f){
+  if(f==='all')return true;
+  if(f==='err')return e.l.includes('[ERR]')||e.l.includes('Error')||e.l.includes('error');
+  if(f==='ok')return e.l.includes('[MUSE]')&&!e.l.includes('[ERR]');
+  return true;
 }
+function appendLine(entry){
+  const el=$('tlog');
+  const d=new Date(entry.t);
+  const ts=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const div=document.createElement('div');div.className='ll';
+  const isErr=entry.l.includes('[ERR]'),isWrn=entry.l.includes('[WRN]'),isOk=entry.l.includes('[MUSE]')&&!isErr;
+  if(isErr)div.classList.add('ll-err');else if(isWrn)div.classList.add('ll-wrn');else if(isOk)div.classList.add('ll-ok');
+  div.innerHTML='<span class="ll-ts">'+ts+'</span>'+esc(entry.l.replace(/^\[(ERR|WRN|INFO)\]\s*/,''));
+  el.appendChild(div);
+  if(autoScroll)el.scrollTop=el.scrollHeight;
+  while(el.childNodes.length>4000)el.removeChild(el.firstChild);
+}
+function setFilter(f,btn){
+  logFilter=f;
+  document.querySelectorAll('.tf').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  $('tlog').innerHTML='';
+  logLines.filter(e=>shouldShow(e,f)).forEach(appendLine);
+}
+function clearTerm(){$('tlog').innerHTML='';logLines.length=0}
+function toggleAS(){autoScroll=!autoScroll;$('asbtn').textContent='Auto '+(autoScroll?'✓':'✗')}
 
-function copyEl(id){navigator.clipboard.writeText($(id).textContent).then(()=>{
-const b=$(id).closest('.row').querySelector('.btn');if(b){b.textContent='\u2713';setTimeout(()=>b.textContent='Copy',2e3)}})}
-function copyFirstKey(){if(lastKey){navigator.clipboard.writeText(lastKey);const b=$('copyKeyBtn');
-b.textContent='\u2713';setTimeout(()=>b.textContent='Copy',2e3)}}
-function copyModalKey(){navigator.clipboard.writeText($('modalKey').textContent);const b=event.target;
-b.textContent='\u2713';setTimeout(()=>b.textContent='Copy',2e3)}
-function closeKeyModal(){$('keyModal').classList.remove('open')}
+// ── MODALS ──
+const cm=id=>$(id).classList.remove('open');
+function copyMK(){navigator.clipboard.writeText($('m-key-val').textContent);
+  const b=document.querySelector('#m-newkey .btn');b.textContent='✓ Copied';setTimeout(()=>b.textContent='Copy Key',2000)}
+function copyText(id){navigator.clipboard.writeText($(id).textContent);
+  const b=$(id).closest('.card-hd')?.querySelector('.btn');
+  if(b){b.textContent='✓ Copied';setTimeout(()=>b.textContent='Copy URL',2000)}}
 
+// ── INIT ──
 document.addEventListener('DOMContentLoaded',()=>{
-const base=`${location.protocol}//${location.host}/v1`;
-$('baseUrl').textContent=base;$('guideUrl').textContent=base;
-$('aboutNode').textContent=(typeof process_env_nodeVersion!=='undefined'?process_env_nodeVersion:'--');
-$('aboutPlatform').textContent=navigator.platform;
-loadStatus();loadKeys();setInterval(loadStatus,5e3);setInterval(loadKeys,15e3);
+  const base=location.protocol+'//'+location.host+'/v1';
+  ['ov-base','qs-url'].forEach(id=>{$(id)&&($(id).textContent=base)});
+  loadStatus();loadKeys();
+  setInterval(loadStatus,5000);setInterval(loadKeys,20000);
+  setInterval(()=>{if($('pg-conversations').classList.contains('active'))loadConversations()},30000);
+  window.addEventListener('resize',()=>updateCharts(prevReq,prevErr,0));
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeKeyModal()});
-$('keyModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeKeyModal()});
-$('keyNameInput').addEventListener('keydown',e=>{if(e.key==='Enter')createKey()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){cm('m-newkey');cm('m-confirm')}});
+['m-newkey','m-confirm'].forEach(id=>$(id).addEventListener('click',e=>{if(e.target===e.currentTarget)cm(id)}));
+$('keyName').addEventListener('keydown',e=>{if(e.key==='Enter')createKey()});
 </script>
 </body>
 </html>
