@@ -94,7 +94,7 @@ const EXTRACTION_RULES = {
     'saiba mais'
   ]
 };
-const DEFAULT_RESPONSE_TIMEOUT_MS = Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 35000);
+const DEFAULT_RESPONSE_TIMEOUT_MS = Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 180000);
 const DEFAULT_READINESS_TIMEOUT_MS = Number(process.env.MUSE_READINESS_TIMEOUT_MS || 15000);
 
 function isUiStatusText(rawText) {

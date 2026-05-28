@@ -534,13 +534,14 @@ function createBridgeGatewayApp() {
           }
         }
 
-        // On follow-up turns with client tools, append a forcing reminder so Meta AI
-        // doesn't respond conversationally ("Vou continuar...") instead of emitting tool calls.
-        if (!isFirstTurn && hasClientTools && lastPromptText) {
+        // On ALL turns with client tools, append a forcing reminder so Meta AI
+        // doesn't respond conversationally instead of emitting tool calls.
+        if (hasClientTools && lastPromptText) {
           lastPromptText +=
-            '\n\n[SYSTEM REMINDER] You MUST respond with <tool_call name="TOOL_NAME">{...}</tool_call> XML block(s). ' +
-            'Do NOT say what you are going to do — emit the XML block(s) immediately. ' +
-            'NUNCA digas "Vou continuar" ou descrever ações — emite SEMPRE os blocos XML <tool_call> agora.';
+            '\n\n[MANDATORY] Respond ONLY with <tool_call name="TOOL_NAME">{...}</tool_call> XML block(s). ' +
+            'Do NOT describe, narrate, or say what you will do. Do NOT say "I will create", "Vou criar", "A iniciar" or similar. ' +
+            'Emit the tool_call XML block(s) directly and immediately. ' +
+            'If you need to create files, emit write_file tool calls right now.';
         }
 
         // ─── 3. Look up existing session for Meta AI chat URL ───
@@ -554,7 +555,7 @@ function createBridgeGatewayApp() {
           fullPrompt: finalPrompt,
           lastPrompt: lastPromptText
         }, {
-          timeoutMs: Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 60000),
+          timeoutMs: Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 180000),
           forceNewChat: isFirstTurn,
           sessionId,
           sessionUrl: sessionRecord ? sessionRecord.chatUrl : null,
@@ -564,11 +565,40 @@ function createBridgeGatewayApp() {
 
         responseText = String(result && result.text ? result.text : '').trim();
         // eslint-disable-next-line no-console
-        console.log(`[MUSE] Raw response from Meta AI:\n${responseText}\n----------------------`);
+        console.log(`[MUSE] Raw response from AI:\n${responseText.slice(0, 300)}\n----------------------`);
         responseUrl =
           (result && result.meta && result.meta.url)
           || (result && result.meta && result.meta.session && result.meta.session.url)
           || '';
+
+        // Auto-retry if tools were expected but response is pure narrative (no XML blocks).
+        if (hasClientTools && !cancelRef.aborted) {
+          const { parseToolCalls } = require('./agent-runner');
+          const preCheck = parseToolCalls(responseText);
+          const looksNarrative = preCheck.length === 0 && responseText.length < 400 &&
+            /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok,?\s|sure|claro|começando|starting|creating)/i.test(responseText.trim());
+          if (looksNarrative) {
+            // eslint-disable-next-line no-console
+            console.log('[MUSE] Narrative response detected — auto-retrying with stronger forcing prompt...');
+            const retryPrompt = 'EMIT THE TOOL CALLS NOW. Do not write any text — output only <tool_call> XML block(s).\nNão escreves texto — emite apenas os blocos <tool_call> XML agora.';
+            const retryResult = await metaWorker.submitPrompt({
+              fullPrompt: retryPrompt,
+              lastPrompt: retryPrompt
+            }, {
+              timeoutMs: Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 180000),
+              forceNewChat: false,
+              sessionId,
+              sessionUrl: responseUrl || (findBySessionId(sessionId) ? findBySessionId(sessionId).chatUrl : null),
+              alwaysFilePrompt: false,
+              cancelRef
+            });
+            if (retryResult && retryResult.text) {
+              responseText = String(retryResult.text).trim();
+              // eslint-disable-next-line no-console
+              console.log(`[MUSE] Retry response: ${responseText.slice(0, 200)}`);
+            }
+          }
+        }
 
         if (hasClientTools) {
           const { parseToolCalls } = require('./agent-runner');
