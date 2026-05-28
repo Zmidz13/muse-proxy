@@ -387,7 +387,14 @@ class MetaWorker {
         return;
       } catch (err) {
         lastErr = err;
-        if (!/ERR_ABORTED|net::ERR|because of a navigation/i.test(String((err && err.message) || ''))) throw err;
+        const msg = String((err && err.message) || '');
+        // "interrupted by another navigation" means the SPA fired its own redirect
+        // to the same URL — the page is already going where we want, just wait.
+        if (/interrupted by another navigation/i.test(msg)) {
+          await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
+          return;
+        }
+        if (!/ERR_ABORTED|net::ERR|because of a navigation/i.test(msg)) throw err;
         await sleep(1000);
       }
     }

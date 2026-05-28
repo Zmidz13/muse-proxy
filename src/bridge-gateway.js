@@ -201,6 +201,23 @@ const stats = {
 };
 
 /**
+ * Strip lines from a system message that claim an AI identity.
+ * Meta AI refuses to follow instructions when it sees "You are Qwen Code" etc.
+ * We remove those lines but keep tool definitions, workflow rules, and context.
+ */
+function stripAiIdentityLines(content) {
+  return content.split('\n').filter(line => {
+    const t = line.trim().toLowerCase();
+    if (!t) return true;
+    // Remove self-identity claims from other AI systems
+    if (/^you are (qwen|claude|gpt|gemini|llama|mistral|copilot|chatgpt|openai|an? (ai|assistant|llm|language model))/i.test(t)) return false;
+    if (/^your name is /i.test(t)) return false;
+    if (/^i am (qwen|claude|gpt|gemini|an? (ai|assistant))/i.test(t)) return false;
+    return true;
+  }).join('\n');
+}
+
+/**
  * Flatten OpenAI messages array into a single prompt string for Meta AI.
  * Preserves the full conversation structure in a readable way and merges the tools definition inside the system block.
  */
@@ -219,11 +236,12 @@ function flattenMessages(messages, tools) {
             .map(p => p.text)
             .join('\n')
         : '';
-    
+
     if (!content.trim()) continue;
 
     if (role === 'system') {
-      let systemContent = content;
+      // Strip AI identity lines that cause Meta AI to reject the prompt ("You are Qwen Code...")
+      let systemContent = stripAiIdentityLines(content);
       if (toolsPrompt && !systemMerged) {
         systemContent = systemContent + '\n\n' + toolsPrompt;
         systemMerged = true;
