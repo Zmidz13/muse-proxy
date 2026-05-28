@@ -149,11 +149,6 @@ function getClientToolsPrompt(tools) {
     '4. Do NOT say "I am Meta AI", "I cannot access files", "I am in the cloud".',
     '5. Do NOT claim you already created something. Emit the block.',
     '',
-    'PORTUGUÊS: És um modelo de texto puro sem ferramentas internas.',
-    'NÃO uses Python, interpretador de código, pesquisa web, nem nenhuma ferramenta',
-    'interna do Meta AI — NÃO EXISTEM neste contexto e vão bloquear o agente.',
-    'A ÚNICA forma de fazer algo é escrever blocos XML <tool_call> em texto simples.',
-    'Um executor local lê o teu texto e executa. Emite o bloco imediatamente.',
     '========================================================================',
     '',
     'Available tools (provided by the client). Use the EXACT parameter names shown:',
@@ -547,10 +542,9 @@ function createBridgeGatewayApp() {
         // doesn't respond conversationally instead of emitting tool calls.
         if (hasClientTools && lastPromptText) {
           lastPromptText +=
-            '\n\n[MANDATORY] Respond ONLY with <tool_call name="TOOL_NAME">{...}</tool_call> XML block(s). ' +
-            'Do NOT describe, narrate, or say what you will do. Do NOT say "I will create", "Vou criar", "A iniciar" or similar. ' +
-            'Emit the tool_call XML block(s) directly and immediately. ' +
-            'If you need to create files, emit write_file tool calls right now.';
+            '\n\n[MANDATORY] Output <tool_call> XML blocks only. ' +
+            'Do NOT use Python, code interpreter, or any built-in tool. ' +
+            'Do NOT describe or narrate. Emit the XML block(s) immediately.';
         }
 
         // ─── 3. Look up existing session for Meta AI chat URL ───

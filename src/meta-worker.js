@@ -837,7 +837,7 @@ class MetaWorker {
       }
 
       const submittedPromptText = useFilePrompting
-        ? "Read the attached file. DO NOT use Python, code interpreter, web search, or any Meta AI built-in tool — they are DISABLED. Your reply must be <tool_call> XML blocks only. No planning text. Start immediately with '<tool_call'.\n\nLê o ficheiro anexado. NÃO uses Python, interpretador, pesquisa web, nem ferramentas internas — estão DESATIVADAS. A tua resposta deve ser apenas blocos XML <tool_call>. Começa imediatamente com '<tool_call'."
+        ? "Read the attached file. DO NOT use Python, code interpreter, web search, or any Meta AI built-in tool — they are DISABLED. Your reply must be <tool_call> XML blocks only. No planning text. Start immediately with '<tool_call'."
         : promptText;
 
       checkAborted();
