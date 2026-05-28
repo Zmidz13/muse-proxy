@@ -616,8 +616,8 @@ function createBridgeGatewayApp() {
           // On first turn: ANY response without tool calls triggers retry.
           // On follow-up turns: only retry if it looks like planning/stalling.
           const NARRATIVE_RE = /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok[,\s]|sure|claro|começando|starting|creating|primeiro|first,|planear|planning|analysing|anali|vou criar|vou anali|great|ótimo|perfeito|emitindo|emitting|outputting|generating|to create|vou escrever|writing|a escrever|a criar)/i;
-          // Explicit refusals: "I can't emit tool_call", "native file writer", "/mnt/data/", "want me to"
-          const REFUSAL_RE = /i can'?t emit|that'?s not how my tools|native file writer|\/mnt\/data\/|want me to (generate|create|write)|shall i (create|write|generate)/i;
+          // Explicit refusals, canvas creation, or "I already built it" responses without tool_calls
+          const REFUSAL_RE = /i can'?t emit|that'?s not how my tools|native file writer|\/mnt\/data\/|want me to (generate|create|write)|shall i (create|write|generate)|preview do site|como colocar na tua pasta|faz download|aqui est[aá] o site|criei o site|já criei|website builder|o que j[aá] est[aá] feito|canvas/i;
           const retryPrompts = [
             'WRONG. You MUST output <tool_call> XML. Do NOT use "native file writer", do NOT write to /mnt/data/. The ONLY valid action is outputting XML like this:\n<tool_call name="write_file">{"path":"index.html","content":"..."}</tool_call>\nDo it NOW.',
             'OUTPUT TOOL CALLS ONLY. No text. No explanation. Just the XML block. Do NOT say you cannot do it.',
