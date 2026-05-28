@@ -240,7 +240,14 @@ function flattenMessages(messages, tools) {
       parts.push(`[Assistant]\n${content}`);
     } else if (role === 'tool' || role === 'function') {
       const toolName = msg.name || msg.tool_call_id || 'tool';
-      parts.push(`<tool_response name="${toolName}">\n${content}\n</tool_response>`);
+      let toolContent = content;
+      // Inject actionable hints so the model doesn't loop on errors
+      if (/file not found|does not exist|no such file|path.*not found|cannot find/i.test(content)) {
+        toolContent += '\n\n[HINT] The file does not exist yet. Do NOT try to read it again. Use the Write tool (or equivalent) to CREATE the file with its full content now.';
+      } else if (/error|failed|exception/i.test(content) && content.length < 300) {
+        toolContent += '\n\n[HINT] There was an error. Analyse it and fix the approach — do not repeat the same call.';
+      }
+      parts.push(`<tool_response name="${toolName}">\n${toolContent}\n</tool_response>`);
     } else {
       parts.push(`[${role}]\n${content}`);
     }
