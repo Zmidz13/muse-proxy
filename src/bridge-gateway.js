@@ -635,6 +635,36 @@ function createBridgeGatewayApp() {
               REFUSAL_RE.test(responseText)
             );
             if (!isNarrative) break;
+
+            // On last retry attempt, switch to agent mode fallback:
+            // Meta AI won't emit tool_call XML but WILL emit <write_file> XML.
+            // The proxy runs the task locally and returns the result as text.
+            if (retryAttempt >= 2) {
+              // eslint-disable-next-line no-console
+              console.log(`[MUSE] All retries failed — falling back to proxy agent mode.`);
+              const lastUserMsg = messages.slice().reverse().find(m => m.role === 'user');
+              const taskText = lastUserMsg
+                ? (typeof lastUserMsg.content === 'string' ? lastUserMsg.content : getMessageText(lastUserMsg))
+                : finalPrompt.slice(0, 500);
+              try {
+                const sessionRecord = findBySessionId(sessionId);
+                const agentResult = await runAgentLoop(taskText, {
+                  sessionId: sessionId + '-agent',
+                  sessionUrl: sessionRecord ? sessionRecord.chatUrl : null,
+                  alwaysFilePrompt: false,
+                  cancelRef
+                });
+                responseText = agentResult.text || 'Task completed via agent mode.';
+                responseUrl = agentResult.chatUrl || responseUrl;
+                // eslint-disable-next-line no-console
+                console.log(`[MUSE] Agent fallback completed: ${responseText.slice(0, 200)}`);
+              } catch (agentErr) {
+                // eslint-disable-next-line no-console
+                console.log(`[MUSE] Agent fallback error: ${agentErr.message}`);
+              }
+              break;
+            }
+
             // eslint-disable-next-line no-console
             console.log(`[MUSE] Narrative detected (attempt ${retryAttempt + 1}) — retrying...`);
             const retryPrompt = retryPrompts[retryAttempt] || retryPrompts[retryPrompts.length - 1];
