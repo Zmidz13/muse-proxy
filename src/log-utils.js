@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 /**
  * Returns the configured prompt log directory.
@@ -92,4 +93,157 @@ function rotatePromptLogs(logDir, maxFiles) {
   }
 }
 
-module.exports = { rotatePromptLogs, getPromptLogDir };
+const MUSE_HOME = process.env.MUSE_HOME || path.join(os.homedir(), '.musespark');
+const LOGS_DIR = path.join(MUSE_HOME, 'logs');
+
+function ensureLogsDir() {
+  if (!fs.existsSync(LOGS_DIR)) {
+    fs.mkdirSync(LOGS_DIR, { recursive: true });
+  }
+}
+
+/**
+ * Logs a chat turn to a global JSON log file AND a session-specific markdown file.
+ */
+function logChatTurn({ sessionId, clientType, messages, responseText, toolCalls = [], toolResults = [] }) {
+  try {
+    ensureLogsDir();
+    const timestamp = new Date().toISOString();
+
+    // 1. Write to global JSON log (NJSON)
+    const jsonLogPath = path.join(LOGS_DIR, 'muse-global.json');
+    const logEntry = {
+      timestamp,
+      sessionId,
+      clientType,
+      messages,
+      responseText,
+      toolCalls,
+      toolResults
+    };
+    fs.appendFileSync(jsonLogPath, JSON.stringify(logEntry) + '\n', 'utf-8');
+
+    // 2. Write to session-specific markdown log
+    const mdLogPath = path.join(LOGS_DIR, `session-${sessionId}.md`);
+    const fileExists = fs.existsSync(mdLogPath);
+    
+    const mdContent = [];
+    if (!fileExists) {
+      mdContent.push(`# Session ${sessionId}`);
+      mdContent.push(`Created: ${timestamp}`);
+      mdContent.push(`Type: ${clientType}`);
+      mdContent.push(`---`);
+      mdContent.push('');
+    }
+
+    mdContent.push(`### [${timestamp}] Turn`);
+    mdContent.push('');
+    
+    // Add user prompt (last user message or messages list)
+    const userMsgs = Array.isArray(messages) ? messages.filter(m => m.role === 'user') : [];
+    const lastUserMsg = userMsgs[userMsgs.length - 1];
+    if (lastUserMsg) {
+      mdContent.push(`**User:**`);
+      mdContent.push('```');
+      mdContent.push(lastUserMsg.content || '');
+      mdContent.push('```');
+      mdContent.push('');
+    } else if (typeof messages === 'string') {
+      mdContent.push(`**User (Prompt):**`);
+      mdContent.push('```');
+      mdContent.push(messages);
+      mdContent.push('```');
+      mdContent.push('');
+    }
+
+    // Add tool calls if any
+    if (toolCalls && toolCalls.length > 0) {
+      mdContent.push(`**AI Tool Calls:**`);
+      for (const call of toolCalls) {
+        mdContent.push('```json');
+        mdContent.push(JSON.stringify(call, null, 2));
+        mdContent.push('```');
+      }
+      mdContent.push('');
+    }
+
+    // Add tool results if any
+    if (toolResults && toolResults.length > 0) {
+      mdContent.push(`**Tool Results:**`);
+      for (const res of toolResults) {
+        mdContent.push(`*Tool: ${res.name}*`);
+        mdContent.push('```');
+        mdContent.push(res.output || '');
+        mdContent.push('```');
+        mdContent.push('');
+      }
+    }
+
+    // Add final response
+    mdContent.push(`**AI Response:**`);
+    mdContent.push('```');
+    mdContent.push(responseText || '');
+    mdContent.push('```');
+    mdContent.push('');
+    mdContent.push('---');
+    mdContent.push('');
+
+    fs.appendFileSync(mdLogPath, mdContent.join('\n'), 'utf-8');
+
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[LOGGER] Error writing chat logs:', err.message || err);
+  }
+}
+
+module.exports = { rotatePromptLogs, getPromptLogDir, logChatTurn, LOGS_DIR };
+
+const logLineListeners = new Set();
+const MAX_LOG_BUFFER = 2000;
+const logBuffer = [];
+
+function captureLogLine(line) {
+  const entry = { t: Date.now(), l: line };
+  logBuffer.push(entry);
+  if (logBuffer.length > MAX_LOG_BUFFER) logBuffer.splice(0, logBuffer.length - MAX_LOG_BUFFER);
+  for (const listener of logLineListeners) {
+    try { listener(entry); } catch (_) { /* noop */ }
+  }
+}
+
+function getLogBuffer() {
+  return logBuffer.slice();
+}
+
+function addLogListener(fn) {
+  logLineListeners.add(fn);
+  return () => { logLineListeners.delete(fn); };
+}
+
+function removeLogListener(fn) {
+  logLineListeners.delete(fn);
+}
+
+const _origLog = console.log;
+const _origErr = console.error;
+const _origWarn = console.warn;
+
+console.log = function (...args) {
+  const line = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');
+  captureLogLine(line);
+  _origLog.apply(console, args);
+};
+
+console.error = function (...args) {
+  const line = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');
+  captureLogLine('[ERR] ' + line);
+  _origErr.apply(console, args);
+};
+
+console.warn = function (...args) {
+  const line = args.map(a => typeof a === 'string' ? a : String(a)).join(' ');
+  captureLogLine('[WRN] ' + line);
+  _origWarn.apply(console, args);
+};
+
+module.exports = { rotatePromptLogs, getPromptLogDir, logChatTurn, LOGS_DIR, getLogBuffer, addLogListener, removeLogListener };

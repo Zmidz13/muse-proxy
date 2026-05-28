@@ -12,13 +12,31 @@ const META_URL = process.env.META_URL || 'https://www.meta.ai/';
  */
 function findBravePath() {
   const candidates = [
+    // Brave Browser
     process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
     'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
     'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
     path.join(os.homedir(), 'AppData', 'Local', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
     '/usr/bin/brave-browser',
     '/usr/bin/brave',
-    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+
+    // Google Chrome
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    path.join(os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+
+    // Microsoft Edge
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    '/usr/bin/microsoft-edge-stable',
+    '/usr/bin/microsoft-edge',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
   ].filter(Boolean);
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
@@ -331,8 +349,46 @@ class MetaWorker {
     this.page.on('requestfailed', onFinished);
   }
 
+  // Wraps page.evaluate so navigation races don't crash a request. When the
+  // page navigates mid-evaluate (e.g. home -> /prompt/uuid on submit), Chromium
+  // destroys the execution context; we wait for the new document and retry once.
+  async pageEval(...args) {
+    try {
+      return await this.page.evaluate(...args);
+    } catch (err) {
+      const msg = String((err && err.message) || '');
+      if (!/Execution context was destroyed|context or browser has been closed|frame was detached|because of a navigation/i.test(msg)) {
+        throw err;
+      }
+      try {
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 8000 });
+      } catch (_) { /* navigation may have already settled */ }
+      await sleep(250);
+      return this.page.evaluate(...args);
+    }
+  }
+
+  // meta.ai is an SPA that often fires an immediate client redirect; waiting for
+  // 'domcontentloaded' races with it and aborts (net::ERR_ABORTED). Navigate with
+  // 'commit' (resolves once the response is committed), then let the DOM settle.
+  async safeGoto(url, timeoutMs = 90000) {
+    let lastErr;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.page.goto(url, { waitUntil: 'commit', timeout: timeoutMs });
+        await this.page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+        return;
+      } catch (err) {
+        lastErr = err;
+        if (!/ERR_ABORTED|net::ERR|because of a navigation/i.test(String((err && err.message) || ''))) throw err;
+        await sleep(1000);
+      }
+    }
+    throw lastErr;
+  }
+
   async detectPageType() {
-    return this.page.evaluate(() => {
+    return this.pageEval(() => {
       const url = location.href;
       const isChatPage = /\/prompt\//.test(url) || /\/chat\//.test(url);
       const hasAssistantMsg = !!document.querySelector(
@@ -373,7 +429,7 @@ class MetaWorker {
       this.page = this.context.pages()[0] || await this.context.newPage();
       this.bindPageObservers();
       await this.tryApplyStorageCookies();
-      await this.page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await this.safeGoto(META_URL, 90000);
       this.initialized = true;
       this.setPhase('ready', { busy: false, pageUrl: this.page.url() });
     };
@@ -459,12 +515,12 @@ class MetaWorker {
     if (!this.page || this.page.isClosed()) {
       this.page = this.context.pages()[0] || await this.context.newPage();
       this.bindPageObservers();
-      await this.page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await this.safeGoto(META_URL, 90000);
     }
     await this.closeOtherPages();
     this.bindPageObservers();
     if (!this.page.url().includes('meta.ai')) {
-      await this.page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await this.safeGoto(META_URL, 90000);
     }
     this.setRuntimeFields({ pageUrl: this.page.url() });
   }
@@ -500,7 +556,7 @@ class MetaWorker {
       const visible = await loc.isVisible().catch(() => false);
       if (!visible) return false;
       if (!requireInput) return true;
-      return await this.page.evaluate((sel) => {
+      return await this.pageEval((sel) => {
         const el = document.querySelector(sel);
         if (!el) return false;
         const isInput = el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement;
@@ -547,7 +603,7 @@ class MetaWorker {
   }
 
   async markBestInputAndGetSelector() {
-    return this.page.evaluate(() => {
+    return this.pageEval(() => {
       const prev = document.querySelectorAll('[data-meta-input-target="1"]');
       prev.forEach((el) => el.removeAttribute('data-meta-input-target'));
 
@@ -591,13 +647,13 @@ class MetaWorker {
     const targetUrl = sessionUrl || (known && known.url);
     if (!targetUrl) return;
     if (this.page.url() !== targetUrl) {
-      await this.page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => {});
+      await this.safeGoto(targetUrl, 90000).catch(() => {});
       await sleep(1200);
     }
   }
 
   async detectBlockedState() {
-    return this.page.evaluate(() => {
+    return this.pageEval(() => {
       const body = document.body;
       const text = body && typeof body.innerText === 'string' ? body.innerText.toLowerCase() : '';
       const hasLogin = text.includes('log in') || text.includes('iniciar sessão');
@@ -614,7 +670,7 @@ class MetaWorker {
 
   async probeUiThinking() {
     try {
-      const ui = await this.page.evaluate(() => {
+      const ui = await this.pageEval(() => {
         const buttons = Array.from(document.querySelectorAll('button,[role="button"]'));
         const hasStop = buttons.some((btn) => {
           const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
@@ -640,7 +696,7 @@ class MetaWorker {
     }
   }
 
-  async _submitPromptCore(prompt, { forceNewChat = false, sessionId = null, sessionUrl = null, timeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS } = {}) {
+  async _submitPromptCore(prompt, { forceNewChat = false, sessionId = null, sessionUrl = null, timeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS, alwaysFilePrompt = false, cancelRef = null } = {}) {
     const requestId = randomUUID().slice(0, 8);
 
     this.setPhase('preflight', {
@@ -654,8 +710,15 @@ class MetaWorker {
     });
 
     try {
+      const checkAborted = () => {
+        if (cancelRef && cancelRef.aborted) {
+          throw new Error('Request aborted by client connection close');
+        }
+      };
+
       // Initialize page FIRST (before any page access)
       await this.ensurePageReady();
+      checkAborted();
 
       // NOW detect page type (page is guaranteed to exist)
       this._initialUrl = this.page.url();
@@ -663,16 +726,19 @@ class MetaWorker {
       this._debugLog(`page_type: ${pageInfo.type} url=${(pageInfo.url || '').slice(0, 80)} chat=${pageInfo.isChatPage} assistant=${pageInfo.hasAssistantMsg} suggestions=${pageInfo.hasSuggestions}`);
 
       // Navigate according to session strategy.
+      let restored = false;
       if (forceNewChat) {
         this._debugLog(`forceNewChat=true, navigating to home...`);
-        await this.page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await this.safeGoto(META_URL, 60000);
         await sleep(2000);
       } else {
         // Restore existing session if we have a saved URL
         await this.restoreSessionIfNeeded(sessionId, sessionUrl);
         // Re-check page type after restore (avoid stale pageInfo).
         const restoredInfo = await this.detectPageType();
-        if (!restoredInfo.isChatPage) {
+        if (restoredInfo.isChatPage) {
+          restored = true;
+        } else {
           await this.clickNewChatIfRequested(true);
           await sleep(1000);
         }
@@ -684,11 +750,16 @@ class MetaWorker {
       
       this.setRuntimeFields({ pageUrl: this.page.url() });
 
+      const promptText = (typeof prompt === 'object' && prompt.fullPrompt)
+        ? (restored ? prompt.lastPrompt : prompt.fullPrompt)
+        : prompt;
+
       // Stabilization: if we're on a chat page, wait for thinking to finish
       const currentPageInfo2 = await this.detectPageType();
       if (currentPageInfo2.isChatPage) {
         let waited = 0;
         while (waited < 5000) {
+          checkAborted();
           const probe = await this.probeUiThinking();
           const thinking = probe.uiThinking || probe.stopButtonVisible || Number(this.runtime.inflightModelRequests || 0) > 0;
           if (!thinking) break;
@@ -706,13 +777,14 @@ class MetaWorker {
         );
       }
 
+      checkAborted();
       let inputSelector = await this.findInputElementSelector();
       if (!inputSelector && await this.markBestInputAndGetSelector()) {
         inputSelector = '[data-meta-input-target="1"]';
       }
       if (!inputSelector) {
         // Sometimes chat mounts late in headless mode. Retry once from home.
-        await this.page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => {});
+        await this.safeGoto(META_URL, 90000).catch(() => {});
         await sleep(1500);
         inputSelector = await this.findInputElementSelector();
         if (!inputSelector && await this.markBestInputAndGetSelector()) {
@@ -737,13 +809,45 @@ class MetaWorker {
         baselineSnapshot.lastAssistantText = String(baselineMsg.text).trim();
       }
 
+      const filePromptThreshold = Number(process.env.MUSE_FILE_PROMPT_THRESHOLD || 25000);
+      let useFilePrompting = alwaysFilePrompt || promptText.length > filePromptThreshold;
+      let tempFilePath = null;
+
+      if (useFilePrompting) {
+        this._debugLog(`Prompt is using file-prompting mode (always=${alwaysFilePrompt}, length=${promptText.length} chars).`);
+        tempFilePath = path.join(os.tmpdir(), `client_prompt_${randomUUID().slice(0, 8)}.md`);
+        try {
+          checkAborted();
+          fs.writeFileSync(tempFilePath, promptText, 'utf8');
+          const fileInput = this.page.locator('input[type="file"]').first();
+          await fileInput.setInputFiles(tempFilePath);
+          await sleep(2500);
+        } catch (err) {
+          this._debugLog(`Failed to upload file prompt: ${err.message}. Falling back to text prompt.`);
+          useFilePrompting = false;
+          try { fs.unlinkSync(tempFilePath); } catch (_) {}
+          tempFilePath = null;
+        }
+      }
+
+      const submittedPromptText = useFilePrompting
+        ? "The attached markdown file is your full context: your role, the available tools, and the user's request. Act as that coding agent now. Do NOT summarize or describe the file — respond with the tool_call XML block(s) needed to start the task, exactly as the rules in the file specify.\n\nO arquivo markdown anexado é o teu contexto completo (papel, ferramentas e pedido do utilizador). Age como esse agente agora. NÃO resumas nem descrevas o arquivo — responde com o(s) bloco(s) XML <tool_call> necessários para começar, conforme as regras no arquivo."
+        : promptText;
+
+      checkAborted();
       this.setPhase('submitting', {
         requestId,
         sessionId: sessionId || null,
         pageUrl: this.page.url()
       });
-      await this.setInputText(inputSelector, prompt, input);
-      await this.ensurePromptSubmitted(inputSelector, prompt, baselineSnapshot, baselineModelRequests);
+      await this.setInputText(inputSelector, submittedPromptText, input);
+      await this.ensurePromptSubmitted(inputSelector, submittedPromptText, baselineSnapshot, baselineModelRequests);
+
+      if (useFilePrompting && tempFilePath) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (_) {}
+      }
 
       // CONFIRM: prompt was actually sent
       await sleep(120);
@@ -781,7 +885,7 @@ class MetaWorker {
       });
 
       // CONFIRM: we're on a chat page (not home)
-      const isChatPage = await this.page.evaluate(() => {
+      const isChatPage = await this.pageEval(() => {
         const hasAssistantMsg = !!document.querySelector(
           '[data-message-author-role="assistant"], [data-author="assistant"], [data-testid*="assistant-message"], [data-testid*="assistant"]'
         );
@@ -797,14 +901,14 @@ class MetaWorker {
       // This prevents race condition where we start polling before the
       // submit was actually registered by Meta AI
       try {
-        const promptHead = String(prompt || '').trim().slice(0, 40);
+        const promptHead = String(submittedPromptText || '').trim().slice(0, 40);
         if (promptHead.length > 5) {
           await this.page.waitForSelector(
             `[data-message-author-role="user"]`,
             { state: 'attached', timeout: 5000 }
           ).catch(async () => {
             // Fallback: check if any user message exists
-            const hasUserMsg = await this.page.evaluate(() =>
+            const hasUserMsg = await this.pageEval(() =>
               !!document.querySelector('[data-message-author-role="user"]')
             ).catch(() => false);
             if (!hasUserMsg) {
@@ -816,7 +920,8 @@ class MetaWorker {
         this._debugLog(`user_message_wait_failed: ${e.message}`);
       }
 
-      const response = await this.waitForAssistantResponse(prompt, { baselineSnapshot, baselineModelRequests }, timeoutMs);
+      checkAborted();
+      const response = await this.waitForAssistantResponse(submittedPromptText, { baselineSnapshot, baselineModelRequests }, timeoutMs, { cancelRef });
       const currentUrl = this.page.url();
       this.setPhase('response_ready', {
         busy: false,
@@ -973,7 +1078,7 @@ class MetaWorker {
       }
     }
 
-    return this.page.evaluate(() => {
+    return this.pageEval(() => {
       const vis = (el) => {
         const r = el.getBoundingClientRect();
         const s = getComputedStyle(el);
@@ -993,7 +1098,7 @@ class MetaWorker {
 
   async copyLastResponse() {
     // Try to click a copy button close to the latest assistant message.
-    const copied = await this.page.evaluate(async () => {
+    const copied = await this.pageEval(async () => {
       const assistantNodes = Array.from(
         document.querySelectorAll('[data-message-author-role="assistant"], [data-author="assistant"], [data-testid*="assistant-message"]')
       );
@@ -1024,7 +1129,7 @@ class MetaWorker {
 
     // Read from clipboard - try multiple methods
     try {
-      const clipboardText = await this.page.evaluate(() => navigator.clipboard.readText());
+      const clipboardText = await this.pageEval(() => navigator.clipboard.readText());
       if (clipboardText && clipboardText.trim().length > 2 && !isUiStatusText(clipboardText)) {
         return { text: collapseRepeatedText(clipboardText.trim()), method: 'clipboard-direct' };
       }
@@ -1038,7 +1143,7 @@ class MetaWorker {
   }
 
   async extractLastAssistantFromDom() {
-    return this.page.evaluate(() => {
+    return this.pageEval(() => {
       const isVisible = (el) => {
         if (!el) return false;
         const rect = el.getBoundingClientRect();
@@ -1209,7 +1314,7 @@ class MetaWorker {
 
   async collectMainTextBlocks() {
     // Keep old method for baseline snapshot before sending
-    return this.page.evaluate((rules) => {
+    return this.pageEval((rules) => {
       const root = document.querySelector('main') || document.body;
       if (!root) return [];
       const blacklistContains = rules.blacklistContains;
@@ -1236,7 +1341,7 @@ class MetaWorker {
 
   async getConversationSnapshot(inputSelector = null) {
     const selector = inputSelector || '';
-    return this.page.evaluate((sel) => {
+    return this.pageEval((sel) => {
       const collapseRepeatedTextLocal = (rawText) => {
         const normalized = String(rawText || '').replace(/\u00a0/g, ' ').replace(/[ \t]+/g, ' ').trim();
         if (!normalized) return '';
@@ -1354,7 +1459,7 @@ class MetaWorker {
     }));
   }
 
-  async waitForAssistantResponse(userPrompt, baseline = {}, timeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS) {
+  async waitForAssistantResponse(userPrompt, baseline = {}, timeoutMs = DEFAULT_RESPONSE_TIMEOUT_MS, options = {}) {
     const started = Date.now();
     const promptNorm = String(userPrompt || '').trim().toLowerCase();
     let lastResponse = '';
@@ -1421,6 +1526,9 @@ class MetaWorker {
     };
 
     while (Date.now() - started < timeoutMs) {
+      if (options.cancelRef && options.cancelRef.aborted) {
+        throw new Error('Request aborted by client connection close');
+      }
       await this.probeUiThinking();
       if (Number(this.runtime.totalModelRequests || 0) > baselineModelRequests) {
         sawModelActivity = true;
@@ -1540,7 +1648,7 @@ class MetaWorker {
 
   async getInputText(inputSelector) {
     try {
-      return await this.page.evaluate(() => {
+      return await this.pageEval(() => {
         // Lexical editor
         const lexical = document.querySelector('[data-lexical-editor="true"]');
         if (lexical) return (lexical.innerText || '').trim();
@@ -1587,7 +1695,7 @@ class MetaWorker {
     if (beforeText && beforeText.trim().length > 0) {
       this._debugLog(`input_not_cleared_before_write: "${beforeText.slice(0, 80)}"`);
       // Force clear again
-      await this.page.evaluate((sel) => {
+      await this.pageEval((sel) => {
         const editor = document.querySelector(sel) || 
                        document.querySelector('[data-lexical-editor="true"]') ||
                        document.querySelector('[contenteditable="true"]');
@@ -1607,7 +1715,7 @@ class MetaWorker {
 
     await this.page.keyboard.insertText(text).catch(async () => {
       this._debugLog('keyboard.insertText failed, trying DOM write fallback');
-      await this.page.evaluate((sel, txt) => {
+      await this.pageEval((sel, txt) => {
         const editor = document.querySelector(sel) ||
           document.querySelector('[data-lexical-editor="true"]') ||
           document.querySelector('[contenteditable="true"]') ||
@@ -1643,7 +1751,7 @@ class MetaWorker {
     if (actualLen < Math.min(8, expectedLen)) {
       this._debugLog(`input_write_failed: expected=${expectedLen}, got=${actualLen}`);
       // Last resort: direct DOM write with paste-like events.
-      await this.page.evaluate((sel, txt) => {
+      await this.pageEval((sel, txt) => {
         const editor = document.querySelector(sel) ||
                        document.querySelector('[data-lexical-editor="true"]') ||
                        document.querySelector('[contenteditable="true"]') ||

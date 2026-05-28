@@ -14,13 +14,31 @@ const USER_DATA_DIR = process.env.USER_DATA_DIR || (fs.existsSync(LEGACY_HOME_PR
  */
 function findBravePath() {
   const candidates = [
+    // Brave Browser
     process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
     'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
     'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
     path.join(os.homedir(), 'AppData', 'Local', 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
     '/usr/bin/brave-browser',
     '/usr/bin/brave',
-    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+
+    // Google Chrome
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    path.join(os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+
+    // Microsoft Edge
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    '/usr/bin/microsoft-edge-stable',
+    '/usr/bin/microsoft-edge',
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
   ].filter(Boolean);
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
@@ -42,7 +60,7 @@ async function runAuthSetup() {
   }
   const context = await chromium.launchPersistentContext(USER_DATA_DIR, launchOptions);
   const page = context.pages()[0] || await context.newPage();
-  await page.goto(META_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  await page.goto(META_URL, { waitUntil: 'commit', timeout: 90000 });
   // eslint-disable-next-line no-console
   console.log('Login setup aberto.');
   // eslint-disable-next-line no-console
@@ -63,4 +81,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { runAuthSetup };
+module.exports = { runAuthSetup, findBravePath };

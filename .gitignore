@@ -1,6 +1,35 @@
+# Dependencies
 node_modules/
+
+# Runtime data (stored in ~/.musespark, not in project)
 *.log
+bridge-sessions.json
+keys.json
+storage-state.json
+
+# Playwright browser profiles
 .pw-brave-profile/
+.pw-ui-profile/
+
+# Build output
+*.exe
+dist/
+
+# Debug artifacts (auto-generated)
+large_prompt_debug.txt
+meta_ai_*.png
+meta_ai_*.html
+
+# Personal / IDE configs
+.claude/
 .qwen/
+.agent/
+
+# Python experiments (JS in src/ is source of truth)
+python/
+agent-chat.py
+__pycache__/
+
+# Misc
 tmp-repro/
-server.log
+backups/

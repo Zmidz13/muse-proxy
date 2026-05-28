@@ -1,18 +1,39 @@
 {
-  "name": "muse-proxy",
-  "version": "2.0.0",
-  "description": "Local gateway that bridges Meta AI to Void IDE via OpenAI-compatible API",
-  "main": "src/openai-api.js",
+  "name": "museproxy",
+  "version": "3.1.0",
+  "description": "Raw OpenAI-compatible API gateway powered by Meta AI — use with Cursor, Cline, Windsurf, Void, or any tool",
+  "main": "src/bridge-gateway.js",
   "bin": {
+    "museproxy": "./src/cli.js",
     "musespark": "./src/cli.js"
   },
   "scripts": {
     "start": "node src/cli.js start",
-    "start:void": "node src/cli.js startvoid",
     "start:mcp": "node src/mcp-server.js",
-    "test": "node --test tests/action-runner.test.js tests/gateway-hardening.test.js tests/gateway-simulations.test.js tests/void-bridge.test.js"
+    "test": "node --test tests/gateway-hardening.test.js",
+    "build": "node build.js",
+    "postinstall": "playwright install chromium --with-deps 2>/dev/null || true"
   },
-  "keywords": ["meta-ai", "void-ide", "openai", "proxy", "mcp", "gateway"],
+  "pkg": {
+    "assets": [
+      "src/dashboard.html",
+      "node_modules/playwright-core/browsers.json",
+      "node_modules/playwright-core/lib/server/deviceDescriptorsSource.json"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ]
+  },
+  "keywords": [
+    "meta-ai",
+    "openai",
+    "proxy",
+    "gateway",
+    "cursor",
+    "cline",
+    "windsurf",
+    "api"
+  ],
   "author": "",
   "license": "MIT",
   "type": "commonjs",
@@ -22,5 +43,8 @@
     "playwright": "^1.59.1",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
   }
 }

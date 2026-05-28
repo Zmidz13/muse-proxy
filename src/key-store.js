@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-const STORE_DIR = path.join(os.homedir(), '.musespark');
+const STORE_DIR = process.env.MUSE_HOME || path.join(os.homedir(), '.musespark');
 const STORE_FILE = path.join(STORE_DIR, 'keys.json');
 
 function ensureStore() {
