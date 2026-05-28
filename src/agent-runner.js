@@ -88,7 +88,12 @@ function parseLooseJson(str) {
         valueStr = valueStr.slice(1, -1);
       }
       
-      valueStr = valueStr.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+      valueStr = valueStr
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\r/g, '\r')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
       result[currentKey.name] = valueStr;
     }
     
@@ -115,9 +120,11 @@ function parseToolCalls(text) {
     let content = match[2];
     if (content.includes('<![CDATA[')) {
       const cdataMatch = /<!\[CDATA\[([\s\S]*?)\]\]>/g.exec(content);
-      if (cdataMatch) {
-        content = cdataMatch[1];
-      }
+      if (cdataMatch) content = cdataMatch[1];
+    }
+    // Unescape literal \n \t \r that Meta AI sometimes outputs instead of real newlines
+    if (!content.includes('\n') && content.includes('\\n')) {
+      content = content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\r/g, '\r');
     }
     calls.push({ type: 'write_file', path: match[1].trim(), content });
   }

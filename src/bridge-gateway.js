@@ -186,6 +186,8 @@ function getClientToolsPrompt(tools) {
   promptLines.push('</tool_call>');
   promptLines.push('');
   promptLines.push('When the user gives a task, your FIRST reply must already contain the tool_call block(s) needed to begin. Emit the block — do not ask whether you may proceed, and do not describe the file instead of writing it.');
+  promptLines.push('');
+  promptLines.push('CRITICAL FOR FILE CONTENT: When writing file contents (content, new_string, etc.), use REAL newlines in the JSON string — do NOT write \\n as two characters. The JSON must contain actual line breaks inside the string value.');
   
   return promptLines.join('\n');
 }
@@ -609,6 +611,12 @@ function createBridgeGatewayApp() {
               let args = {};
               if (call.isGeneric) {
                 args = call.args;
+                // Unescape literal \n in file content fields from generic tool_call blocks
+                for (const key of ['content', 'new_string', 'old_string', 'text']) {
+                  if (typeof args[key] === 'string' && !args[key].includes('\n') && args[key].includes('\\n')) {
+                    args[key] = args[key].replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\r/g, '\r');
+                  }
+                }
               } else {
                 if (call.type === 'execute_command') args = { command: call.command };
                 else if (call.type === 'write_file') args = { path: call.path, content: call.content };
