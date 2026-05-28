@@ -477,18 +477,22 @@ function createBridgeGatewayApp() {
       // Check if we are running in File Prompt Mode (via request body, header, global setting, or env)
       // Auto-enable for large prompts so they are uploaded as .md files instead of pasted as text.
       const largePromptThreshold = Number(process.env.MUSE_FILE_PROMPT_THRESHOLD || 25000);
-      // For file-prompt mode: build a stripped version without the client system message.
-      // Meta AI reads uploaded files as documents and rejects them when it sees another AI's system prompt.
-      // Our getClientToolsPrompt already provides all necessary tool instructions.
-      const flatPromptForFile = flatPrompt.length > largePromptThreshold
-        ? flattenMessages(messages.filter(m => m.role !== 'system'), req.body.tools)
-        : flatPrompt;
+
+      // Build a system-stripped version (no client system message) for when prompts are large.
+      // Meta AI reads uploaded files as documents and identifies/rejects another AI's system prompt.
+      // Without the system message, the remaining prompt (tools + conversation) is usually tiny.
+      // If the stripped version fits under the threshold, we send it as TEXT (no file upload at all),
+      // which is much less likely to trigger Meta AI's identity rejection.
+      const flatPromptStripped = flattenMessages(messages.filter(m => m.role !== 'system'), req.body.tools);
+      const flatPromptForFile = flatPromptStripped;
+
+      // Only use file mode when even the stripped version is too large.
       const isFilePromptMode =
         !!(req.body && req.body.file_prompt) ||
         req.headers['x-file-prompt'] === 'true' ||
         process.env.MUSE_ALWAYS_FILE_PROMPT === 'true' ||
         filePromptEnabled ||
-        flatPrompt.length > largePromptThreshold;
+        flatPromptStripped.length > largePromptThreshold;
 
       const hasClientTools = Array.isArray(req.body.tools) && req.body.tools.length > 0;
 
@@ -531,9 +535,10 @@ function createBridgeGatewayApp() {
         // ─── 2. Prepend raw mode primer on first turn only (skip if client tools are present to avoid preamble contamination) ───
         let finalPrompt;
         
-        // In file-prompt mode use the system-stripped version so Meta AI does not
-        // analyze the client's system prompt instead of following our tool instructions.
-        const effectiveFullPrompt = isFilePromptMode ? flatPromptForFile : flatPrompt;
+        // With client tools: always use the system-stripped version.
+        // The client's system prompt reveals another AI's identity (e.g. "You are Qwen Code")
+        // causing Meta AI to reject the instructions. Our getClientToolsPrompt covers everything needed.
+        const effectiveFullPrompt = hasClientTools ? flatPromptStripped : (isFilePromptMode ? flatPromptForFile : flatPrompt);
 
         if (isFirstTurn) {
           if (hasClientTools) {
