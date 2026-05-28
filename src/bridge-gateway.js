@@ -609,7 +609,7 @@ function createBridgeGatewayApp() {
               fullPrompt: retryPrompt,
               lastPrompt: retryPrompt
             }, {
-              timeoutMs: 60000,
+              timeoutMs: Number(process.env.MUSE_RESPONSE_TIMEOUT_MS || 180000),
               forceNewChat: false,
               sessionId,
               sessionUrl: responseUrl || (sessionLookup ? sessionLookup.chatUrl : null),
