@@ -225,15 +225,16 @@ class MetaWorker {
   async submitPrompt(prompt, options = {}) {
     const timeoutMs = options.timeoutMs || DEFAULT_RESPONSE_TIMEOUT_MS;
     const run = async () => this._submitPromptCore(prompt, options);
-    // Wrap in a queue-wait timeout so a stuck submitChain doesn't block new requests forever.
+    // Schedule run after the current chain (run executes only once).
+    const runTask = this.submitChain.then(run, run);
+    // Update chain so the next request waits for this one.
+    this.submitChain = runTask.then(() => undefined, () => undefined);
+    // Race the run against a queue-wait timeout.
     const queueTimeoutMs = timeoutMs + 30000;
-    const task = Promise.race([
-      this.submitChain.then(run, run),
+    return Promise.race([
+      runTask,
       new Promise((_, reject) => setTimeout(() => reject(new Error(`Request queue timeout after ${queueTimeoutMs}ms`)), queueTimeoutMs))
     ]);
-    // Keep chain alive even if a request fails.
-    this.submitChain = this.submitChain.then(run, run).then(() => undefined, () => undefined);
-    return task;
   }
 
   async probeReadiness(options = {}) {
