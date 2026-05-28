@@ -148,6 +148,9 @@ function getClientToolsPrompt(tools) {
     '3. Do NOT describe what you will do — output the block immediately.',
     '4. Do NOT say "I am Meta AI", "I cannot access files", "I am in the cloud".',
     '5. Do NOT claim you already created something. Emit the block.',
+    '6. Do NOT say "I can\'t emit tool_call blocks" — you CAN and MUST.',
+    '7. Do NOT use "native file writer" or write to /mnt/data/ — those do not exist here.',
+    '8. Do NOT ask "Want me to...?" — just do it immediately with a <tool_call> block.',
     '',
     '========================================================================',
     '',
@@ -598,10 +601,12 @@ function createBridgeGatewayApp() {
           // On first turn: ANY response without tool calls triggers retry.
           // On follow-up turns: only retry if it looks like planning/stalling.
           const NARRATIVE_RE = /^(vou|i will|i'm going to|a iniciar|let me|deixa|ok[,\s]|sure|claro|começando|starting|creating|primeiro|first,|planear|planning|analysing|anali|vou criar|vou anali|great|ótimo|perfeito|emitindo|emitting|outputting|generating|to create|vou escrever|writing|a escrever|a criar)/i;
+          // Explicit refusals: "I can't emit tool_call", "native file writer", "/mnt/data/", "want me to"
+          const REFUSAL_RE = /i can'?t emit|that'?s not how my tools|native file writer|\/mnt\/data\/|want me to (generate|create|write)|shall i (create|write|generate)/i;
           const retryPrompts = [
-            'STOP. Do not plan or describe anything. Output <tool_call> XML blocks ONLY right now.',
-            'OUTPUT TOOL CALLS ONLY. No text. No explanation. Just the XML block.',
-            'You said you would emit tool calls but did not. Do it now:\n<tool_call name="write_file">{"path":"index.html","content":"REPLACE WITH REAL CONTENT"}</tool_call>'
+            'WRONG. You MUST output <tool_call> XML. Do NOT use "native file writer", do NOT write to /mnt/data/. The ONLY valid action is outputting XML like this:\n<tool_call name="write_file">{"path":"index.html","content":"..."}</tool_call>\nDo it NOW.',
+            'OUTPUT TOOL CALLS ONLY. No text. No explanation. Just the XML block. Do NOT say you cannot do it.',
+            'You refused to emit tool calls. Do it now — no excuses:\n<tool_call name="write_file">{"path":"index.html","content":"REPLACE WITH REAL CONTENT"}</tool_call>'
           ];
           let retryAttempt = 0;
           while (retryAttempt < 3 && !cancelRef.aborted) {
@@ -610,7 +615,9 @@ function createBridgeGatewayApp() {
             // First turn: retry on ANY response with no tool calls (even if not obviously narrative)
             // Follow-up turns: only retry if clearly narrative/stalling
             const isNarrative = noToolCalls && (
-              isFirstTurn || NARRATIVE_RE.test(responseText.trim())
+              isFirstTurn ||
+              NARRATIVE_RE.test(responseText.trim()) ||
+              REFUSAL_RE.test(responseText)
             );
             if (!isNarrative) break;
             // eslint-disable-next-line no-console
