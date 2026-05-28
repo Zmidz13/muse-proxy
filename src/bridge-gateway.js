@@ -456,7 +456,7 @@ function createBridgeGatewayApp() {
     try {
       // ─── 1. Flatten all messages into a single prompt (merging tools prompt if defined) ───
       const flatPrompt = flattenMessages(messages, req.body.tools);
-      
+
       if (req.body.tools) {
         // eslint-disable-next-line no-console
         console.log(`[MUSE] Client defined tools:`, req.body.tools.map(t => t.function?.name));
@@ -477,6 +477,12 @@ function createBridgeGatewayApp() {
       // Check if we are running in File Prompt Mode (via request body, header, global setting, or env)
       // Auto-enable for large prompts so they are uploaded as .md files instead of pasted as text.
       const largePromptThreshold = Number(process.env.MUSE_FILE_PROMPT_THRESHOLD || 25000);
+      // For file-prompt mode: build a stripped version without the client system message.
+      // Meta AI reads uploaded files as documents and rejects them when it sees another AI's system prompt.
+      // Our getClientToolsPrompt already provides all necessary tool instructions.
+      const flatPromptForFile = flatPrompt.length > largePromptThreshold
+        ? flattenMessages(messages.filter(m => m.role !== 'system'), req.body.tools)
+        : flatPrompt;
       const isFilePromptMode =
         !!(req.body && req.body.file_prompt) ||
         req.headers['x-file-prompt'] === 'true' ||
@@ -525,17 +531,21 @@ function createBridgeGatewayApp() {
         // ─── 2. Prepend raw mode primer on first turn only (skip if client tools are present to avoid preamble contamination) ───
         let finalPrompt;
         
+        // In file-prompt mode use the system-stripped version so Meta AI does not
+        // analyze the client's system prompt instead of following our tool instructions.
+        const effectiveFullPrompt = isFilePromptMode ? flatPromptForFile : flatPrompt;
+
         if (isFirstTurn) {
           if (hasClientTools) {
             // Client tools prompt already contains agent instructions — skip the raw mode primer
             // to avoid preamble contamination that confuses the model
-            finalPrompt = flatPrompt;
+            finalPrompt = effectiveFullPrompt;
           } else {
-            finalPrompt = RAW_MODE_PRIMER + '\n\n' + flatPrompt;
+            finalPrompt = RAW_MODE_PRIMER + '\n\n' + effectiveFullPrompt;
           }
           primedSessions.add(sessionId);
         } else {
-          finalPrompt = flatPrompt;
+          finalPrompt = effectiveFullPrompt;
         }
 
         // Format the last message content for follow-up turns
